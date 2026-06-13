@@ -6,6 +6,7 @@
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect, status
 
 from app.core.security import decode_token
+from app.websocket.handlers import MessageContext, dispatch
 from app.websocket.manager import manager
 
 router = APIRouter()
@@ -25,14 +26,12 @@ async def websocket_endpoint(
     team_id = payload.get("team_id")
 
     await manager.connect(websocket, user_id, team_id)
+    ctx = MessageContext(
+        websocket=websocket, manager=manager, user_id=user_id, team_id=team_id
+    )
     try:
         while True:
             data = await websocket.receive_json()
-            # 클라이언트 → 서버 메시지 처리 (채팅, 버튼 등)
-            # 추후 메시지 타입별 핸들러 등록
-            msg_type = data.get("type")
-            if msg_type == "ping":
-                await websocket.send_json({"type": "pong"})
-            # TODO: chat, button_press 등 처리
+            await dispatch(ctx, data)
     except WebSocketDisconnect:
         manager.disconnect(websocket, user_id, team_id)
