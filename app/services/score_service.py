@@ -1,0 +1,90 @@
+"""점수 기록 비즈니스 로직."""
+
+from datetime import datetime, timezone
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.game_session import GameScoreLog
+from app.models.team import Team
+from app.models.user import User
+from app.schemas.score import ScoreCreate, ScoreUpdate
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+async def subject_exists(db: AsyncSession, subject_type: str, subject_id: int) -> bool:
+    """subject_type 에 따라 teams 또는 users 에 해당 id 가 있는지 확인."""
+    model = Team if subject_type == "team" else User
+    result = await db.execute(select(model.id).where(model.id == subject_id))
+    return result.scalar_one_or_none() is not None
+
+
+async def create_score(
+    db: AsyncSession, session_id: int, data: ScoreCreate, admin_id: int
+) -> GameScoreLog:
+    score = GameScoreLog(
+        session_id=session_id,
+        subject_type=data.subject_type,
+        subject_id=data.subject_id,
+        score=data.score,
+        memo=data.memo,
+        created_by=admin_id,
+    )
+    db.add(score)
+    await db.commit()
+    await db.refresh(score)
+    return score
+
+
+async def list_scores(db: AsyncSession, session_id: int) -> list[GameScoreLog]:
+    result = await db.execute(
+        select(GameScoreLog)
+        .where(GameScoreLog.session_id == session_id)
+        .order_by(GameScoreLog.id)
+    )
+    return list(result.scalars().all())
+
+
+async def get_score(db: AsyncSession, score_id: int) -> GameScoreLog | None:
+    result = await db.execute(
+        select(GameScoreLog).where(GameScoreLog.id == score_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def update_score(
+    db: AsyncSession, score: GameScoreLog, data: ScoreUpdate, admin_id: int
+) -> GameScoreLog:
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(score, key, value)
+    score.updated_by = admin_id
+    score.updated_at = _utcnow()
+    await db.commit()
+    await db.refresh(score)
+    return score
+
+
+async def score_summary(db: AsyncSession, session_id: int) -> list[dict]:
+    """세션 내 subject 별 합산 점수 (내림차순)."""
+    total = func.coalesce(func.sum(GameScoreLog.score), 0)
+    result = await db.execute(
+        select(
+            GameScoreLog.subject_type,
+            GameScoreLog.subject_id,
+            total.label("total_score"),
+        )
+        .where(GameScoreLog.session_id == session_id)
+        .group_by(GameScoreLog.subject_type, GameScoreLog.subject_id)
+        .order_by(total.desc())
+    )
+    return [
+        {
+            "subject_type": row.subject_type,
+            "subject_id": row.subject_id,
+            "total_score": int(row.total_score),
+        }
+        for row in result.all()
+    ]
