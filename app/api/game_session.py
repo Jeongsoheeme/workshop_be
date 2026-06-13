@@ -4,6 +4,7 @@ from app.api.deps import AdminUser, CurrentUser, DbSession
 from app.schemas.game_session import GameSessionRead, SessionTransition
 from app.services import game_session_service, timetable_service
 from app.services.game_session_service import InvalidStateTransition
+from app.websocket.events import broadcast_session_state
 
 router = APIRouter(tags=["game-sessions"])
 
@@ -55,8 +56,14 @@ async def transition_session(
 ) -> GameSessionRead:
     session = await _get_session_or_404(db, session_id)
     try:
-        return await game_session_service.transition(db, session, payload.to, admin.id)
+        session = await game_session_service.transition(
+            db, session, payload.to, admin.id
+        )
     except InvalidStateTransition as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail=str(exc)
         ) from exc
+
+    # 상태 변경을 접속자에게 실시간 브로드캐스트
+    await broadcast_session_state(session)
+    return session

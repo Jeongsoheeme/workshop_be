@@ -1,0 +1,121 @@
+"""WebSocket 메시지 핸들러 + 상태 전이 브로드캐스트 테스트."""
+
+import uuid
+
+import pytest
+from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
+
+from app.core.security import create_access_token
+from app.main import app
+from app.websocket.handlers import MessageContext, dispatch
+
+
+def _token() -> str:
+    return create_access_token(subject=1, role="admin", team_id=None)
+
+
+def _unique(prefix: str) -> str:
+    return f"{prefix}_{uuid.uuid4().hex[:8]}"
+
+
+# ---- dispatch 단위 테스트 (순수) ----
+
+class _FakeWS:
+    def __init__(self) -> None:
+        self.sent: list[dict] = []
+
+    async def send_json(self, message: dict) -> None:
+        self.sent.append(message)
+
+
+async def test_dispatch_ping():
+    ws = _FakeWS()
+    ctx = MessageContext(websocket=ws, manager=None, user_id=1, team_id=None)
+    await dispatch(ctx, {"type": "ping"})
+    assert ws.sent == [{"type": "pong"}]
+
+
+async def test_dispatch_unknown_type():
+    ws = _FakeWS()
+    ctx = MessageContext(websocket=ws, manager=None, user_id=1, team_id=None)
+    await dispatch(ctx, {"type": "floop"})
+    assert ws.sent[0]["type"] == "error"
+
+
+# ---- 실제 WebSocket 연결 (동기 TestClient) ----
+
+def test_ws_ping_pong():
+    with TestClient(app) as c:
+        with c.websocket_connect(f"/ws?token={_token()}") as ws:
+            ws.send_json({"type": "ping"})
+            assert ws.receive_json() == {"type": "pong"}
+
+
+def test_ws_unknown_type_returns_error():
+    with TestClient(app) as c:
+        with c.websocket_connect(f"/ws?token={_token()}") as ws:
+            ws.send_json({"type": "nope"})
+            msg = ws.receive_json()
+            assert msg["type"] == "error"
+
+
+def test_ws_invalid_token_rejected():
+    with TestClient(app) as c:
+        with pytest.raises(WebSocketDisconnect):
+            with c.websocket_connect("/ws?token=invalid") as ws:
+                ws.receive_json()
+
+
+# ---- 상태 전이 → 브로드캐스트 ----
+
+async def test_transition_broadcasts_state(client, admin_headers, monkeypatch):
+    from app.websocket import manager as mgr_mod
+
+    calls: list[dict] = []
+
+    async def fake_broadcast(message: dict) -> None:
+        calls.append(message)
+
+    monkeypatch.setattr(mgr_mod.manager, "broadcast", fake_broadcast)
+
+    # 세션 준비
+    season_id = (
+        await client.post(
+            "/api/seasons", json={"name": _unique("시즌")}, headers=admin_headers
+        )
+    ).json()["id"]
+    game_id = (
+        await client.post(
+            "/api/games",
+            json={"title": _unique("게임"), "participant_type": "team_vs", "input_type": "chat"},
+            headers=admin_headers,
+        )
+    ).json()["id"]
+    timetable_id = (
+        await client.post(
+            f"/api/seasons/{season_id}/timetable",
+            json={"game_id": game_id, "order_index": 1},
+            headers=admin_headers,
+        )
+    ).json()["id"]
+    session_id = (
+        await client.post(
+            f"/api/timetable/{timetable_id}/session", headers=admin_headers
+        )
+    ).json()["id"]
+
+    # 전이 → 브로드캐스트 발생
+    res = await client.post(
+        f"/api/sessions/{session_id}/transition",
+        json={"to": "ready"},
+        headers=admin_headers,
+    )
+    assert res.status_code == 200
+
+    assert any(
+        c["type"] == "session_state_changed"
+        and c["session_id"] == session_id
+        and c["state"] == "ready"
+        for c in calls
+    )
