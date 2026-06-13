@@ -43,3 +43,18 @@ async def broadcast_result_recorded(result: GameResult) -> None:
             "subject_id": result.subject_id,
         }
     )
+
+
+async def broadcast_roulette_result(
+    session_id: int, nonce: int, selected_index: int, selected: str
+) -> None:
+    """룰렛/추첨 결과를 전체 접속자에게 브로드캐스트."""
+    await manager.broadcast(
+        {
+            "type": "roulette_result",
+            "session_id": session_id,
+            "nonce": nonce,
+            "selected_index": selected_index,
+            "selected": selected,
+        }
+    )
