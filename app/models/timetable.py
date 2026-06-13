@@ -1,0 +1,37 @@
+from sqlalchemy import ForeignKey, String, text
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.db.base import Base, TimestampMixin
+
+
+class Timetable(Base, TimestampMixin):
+    __tablename__ = "timetable"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    season_id: Mapped[int] = mapped_column(
+        ForeignKey("seasons.id", name="fk_timetable_season"),
+        nullable=False,
+        comment="소속 시즌 ID",
+    )
+    game_id: Mapped[int] = mapped_column(
+        ForeignKey("game.id", name="fk_timetable_game"),
+        nullable=False,
+        comment="연결된 게임 ID",
+    )
+    phase: Mapped[str | None] = mapped_column(
+        String(50), nullable=True, comment="진행 단계 구분 (예: 저녁식사 전, 저녁식사 후, 2일차)"
+    )
+    order_index: Mapped[int] = mapped_column(
+        nullable=False, comment="전체 진행 순서"
+    )
+    label: Mapped[str | None] = mapped_column(
+        String(100), nullable=True, comment="화면 표시용 라벨 (예: 에피타이저, 메인①)"
+    )
+    raffle_reward: Mapped[int] = mapped_column(
+        server_default=text("0"), nullable=False, comment="라운드 종료 시 지급할 뽑기권 수"
+    )
+    updated_by: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", name="fk_timetable_updated"),
+        nullable=True,
+        comment="최종 수정한 운영자",
+    )
