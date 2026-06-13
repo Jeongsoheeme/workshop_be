@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin
@@ -8,11 +8,35 @@ from app.db.base import Base, TimestampMixin
 
 class Season(Base, TimestampMixin):
     __tablename__ = "seasons"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('preparing', 'active', 'done')", name="seasons_status_check"
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
-    status: Mapped[str] = mapped_column(String(20), default="preparing", nullable=False)
-    started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    ended_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    name: Mapped[str] = mapped_column(
+        String(100), nullable=False, comment="시즌 이름 (예: 2026 가평 워크샵, 리허설)"
+    )
+    status: Mapped[str] = mapped_column(
+        String(20),
+        server_default=text("'preparing'"),
+        nullable=False,
+        comment="시즌 상태 (preparing/active/done)",
+    )
+    started_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True, comment="시즌 시작 시각"
+    )
+    ended_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True, comment="시즌 종료 시각"
+    )
+    created_by: Mapped[int] = mapped_column(
+        ForeignKey("users.id", name="fk_seasons_created"),
+        nullable=False,
+        comment="시즌 생성한 운영자",
+    )
+    updated_by: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", name="fk_seasons_updated"),
+        nullable=True,
+        comment="최종 수정한 운영자",
+    )
