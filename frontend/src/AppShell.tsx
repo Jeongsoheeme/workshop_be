@@ -7,6 +7,7 @@ import RankingPage from './pages/RankingPage'
 import MainPage from './pages/MainPage'
 import DexPage from './pages/DexPage'
 import MiniGamePage from './pages/MiniGamePage'
+import AdminPage from './pages/AdminPage'
 
 type Tab = 'my' | 'ranking' | 'main' | 'dex' | 'mini'
 
@@ -23,6 +24,8 @@ export default function AppShell() {
   const { seasons, seasonId, setSeasonId, loading } = useSeason()
   const { connected } = useLive()
   const [tab, setTab] = useState<Tab>('main')
+  const [adminOpen, setAdminOpen] = useState(false)
+  const isAdmin = user?.role === 'admin'
 
   return (
     <div className="shell">
@@ -40,19 +43,28 @@ export default function AppShell() {
           ))}
         </select>
         <span className={connected ? 'live on' : 'live off'}>{connected ? '● LIVE' : '○'}</span>
+        {isAdmin && (
+          <button className="link" onClick={() => setAdminOpen(true)} title="운영 관리">
+            ⚙️
+          </button>
+        )}
         <button className="link" onClick={logout}>
           나가기
         </button>
       </header>
 
       <main className="shell-main">
-        {loading ? (
+        {adminOpen && isAdmin ? (
+          <AdminPage onClose={() => setAdminOpen(false)} />
+        ) : loading ? (
           <p className="muted" style={{ padding: 20 }}>
             시즌 불러오는 중…
           </p>
         ) : seasonId == null ? (
           <p className="muted" style={{ padding: 20 }}>
-            시즌이 없습니다. 운영자에게 문의하세요.
+            {isAdmin
+              ? '시즌이 없습니다. 우측 상단 ⚙️ 에서 시즌을 만드세요.'
+              : '시즌이 없습니다. 운영자에게 문의하세요.'}
           </p>
         ) : (
           <>
