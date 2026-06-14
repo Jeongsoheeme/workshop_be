@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>가평 워크샵 · 포켓몬 컨셉 화면 기획서</title>
+    <style>
+      :root {
+        --poke-red: #ee1515;
+        --poke-red-d: #b30e0e;
+        --poke-blue: #2a75bb;
+        --poke-yellow: #ffcb05;
+        --ink: #1b2430;
+        --muted: #8b93a3;
+        --line: #e6e9ef;
+        --bg: #f0f2f7;
+        --card: #ffffff;
+        --gold: #ffd76a;
+        --silver: #d8dee9;
+        --bronze: #f0b890;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui,
+          'Apple SD Gothic Neo', sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* ---------- 문서 헤더 ---------- */
+      .doc-head {
+        background: linear-gradient(135deg, var(--poke-red), var(--poke-red-d));
+        color: #fff;
+        padding: 32px 24px 56px;
+        position: relative;
+        overflow: hidden;
+      }
+      .doc-head::after {
+        content: '';
+        position: absolute;
+        right: -60px;
+        top: -60px;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.12);
+        border: 14px solid rgba(255, 255, 255, 0.18);
+      }
+      .doc-head h1 { margin: 0 0 6px; font-size: 26px; }
+      .doc-head p { margin: 4px 0; opacity: 0.92; font-size: 14px; max-width: 640px; }
+      .badge-row { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+      .tag {
+        background: rgba(255, 255, 255, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      /* ---------- 네비게이션 범례 ---------- */
+      .legend {
+        max-width: 960px;
+        margin: -32px auto 0;
+        background: var(--card);
+        border-radius: 16px;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1);
+        padding: 18px 20px;
+        position: relative;
+        z-index: 2;
+      }
+      .legend h2 { margin: 0 0 12px; font-size: 15px; }
+      .legend-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+      }
+      .legend-grid .item {
+        text-align: center;
+        padding: 10px 6px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        font-size: 12px;
+      }
+      .legend-grid .item .ic { font-size: 22px; display: block; margin-bottom: 4px; }
+      .legend-grid .item strong { display: block; font-size: 12px; }
+      .legend-grid .item.center { background: #fff6d6; border-color: var(--poke-yellow); }
+
+      /* ---------- 보드 ---------- */
+      .board {
+        max-width: 1280px;
+        margin: 28px auto 60px;
+        padding: 0 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 28px;
+        justify-content: center;
+        align-items: flex-start;
+      }
+      .frame { width: 320px; }
+      .frame > .cap {
+        margin-top: 12px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .cap b { color: var(--ink); display: block; font-size: 13px; margin-bottom: 3px; }
+      .cap .api {
+        display: inline-block;
+        margin: 3px 4px 0 0;
+        padding: 2px 7px;
+        background: #eef3fb;
+        color: var(--poke-blue);
+        border-radius: 6px;
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 11px;
+      }
+      .cap .concept {
+        margin-top: 6px;
+        padding: 6px 9px;
+        background: #fff3f3;
+        border-left: 3px solid var(--poke-red);
+        border-radius: 0 8px 8px 0;
+        color: #7a2b2b;
+        font-size: 12px;
+      }
+
+      /* ---------- 폰 목업 ---------- */
+      .phone {
+        width: 320px;
+        height: 660px;
+        background: var(--card);
+        border-radius: 30px;
+        border: 9px solid #11151c;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.18);
+      }
+      .statusbar {
+        height: 26px;
+        background: #11151c;
+        color: #fff;
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 14px;
+        flex: none;
+      }
+      .screen {
+        flex: 1;
+        overflow-y: auto;
+        background: #f7f8fb;
+      }
+      .screen::-webkit-scrollbar { width: 0; }
+      .topbar {
+        background: var(--poke-red);
+        color: #fff;
+        padding: 12px 14px;
+        font-weight: 800;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        position: sticky;
+        top: 0;
+        z-index: 3;
+      }
+      .topbar .right { margin-left: auto; font-size: 11px; font-weight: 600; opacity: 0.9; }
+      .body { padding: 14px; }
+      .muted { color: var(--muted); font-size: 12px; }
+      .sec-title { font-size: 13px; font-weight: 800; margin: 16px 0 8px; }
+      .sec-title:first-child { margin-top: 0; }
+
+      .card {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 13px;
+        margin-bottom: 10px;
+      }
+
+      /* 하단 네비 */
+      .nav {
+        flex: none;
+        height: 60px;
+        background: #fff;
+        border-top: 1px solid var(--line);
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        align-items: center;
+      }
+      .nav .tab {
+        text-align: center;
+        font-size: 10px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .nav .tab .ic { font-size: 20px; display: block; }
+      .nav .tab.active { color: var(--poke-red); font-weight: 800; }
+      .nav .tab.center .ic {
+        background: var(--poke-red);
+        color: #fff;
+        width: 44px;
+        height: 44px;
+        line-height: 44px;
+        border-radius: 50%;
+        margin: -18px auto 2px;
+        box-shadow: 0 6px 14px rgba(238, 21, 21, 0.45);
+        border: 3px solid #fff;
+      }
+
+      /* 트레이너 카드 */
+      .trainer {
+        background: linear-gradient(135deg, var(--poke-blue), #1f5a91);
+        color: #fff;
+        border-radius: 16px;
+        padding: 16px;
+        position: relative;
+        overflow: hidden;
+      }
+      .trainer .avatar {
+        width: 54px; height: 54px; border-radius: 50%;
+        background: var(--poke-yellow); display: grid; place-items: center;
+        font-size: 28px;
+      }
+      .trainer .name { font-size: 18px; font-weight: 800; }
+      .flex { display: flex; gap: 12px; align-items: center; }
+      .pill {
+        display: inline-block; padding: 2px 8px; border-radius: 999px;
+        font-size: 11px; font-weight: 700;
+      }
+      .pill.team { background: rgba(255,255,255,.2); }
+      .stat-row { display: flex; gap: 8px; margin-top: 12px; }
+      .stat {
+        flex: 1; background: rgba(255,255,255,.14); border-radius: 10px;
+        padding: 8px; text-align: center;
+      }
+      .stat .n { font-size: 18px; font-weight: 800; }
+      .stat .l { font-size: 10px; opacity: .85; }
+
+      /* 파티 슬롯 */
+      .party { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .slot {
+        background: #fff; border: 1px solid var(--line); border-radius: 12px;
+        padding: 8px; text-align: center; font-size: 11px;
+      }
+      .slot .face {
+        width: 38px; height: 38px; border-radius: 50%; margin: 0 auto 4px;
+        background: #eef1f6; display: grid; place-items: center; font-size: 20px;
+      }
+      .slot.empty { color: var(--muted); border-style: dashed; }
+
+      /* 랭킹 포디움 */
+      .podium { display: flex; align-items: flex-end; gap: 6px; justify-content: center; margin: 10px 0 14px; }
+      .pod { flex: 1; border-radius: 12px 12px 0 0; text-align: center; padding: 8px 4px; color: #5a4a00; }
+      .pod .face { font-size: 24px; }
+      .pod .nm { font-size: 11px; font-weight: 800; }
+      .pod .sc { font-size: 13px; font-weight: 800; }
+      .pod.p1 { background: var(--gold); height: 110px; }
+      .pod.p2 { background: var(--silver); height: 88px; }
+      .pod.p3 { background: var(--bronze); height: 72px; }
+      .rank-row {
+        display: flex; align-items: center; gap: 10px;
+        background: #fff; border: 1px solid var(--line); border-radius: 10px;
+        padding: 9px 11px; margin-bottom: 6px; font-size: 13px;
+      }
+      .rank-row .no { width: 22px; height: 22px; border-radius: 50%; background: #eef1f6;
+        display: grid; place-items: center; font-size: 11px; font-weight: 800; }
+      .rank-row .nm { flex: 1; font-weight: 700; }
+      .rank-row .sc { font-weight: 800; color: var(--poke-blue); }
+      .toggle { display: flex; background: #eef1f6; border-radius: 10px; padding: 3px; margin-bottom: 10px; }
+      .toggle span { flex: 1; text-align: center; font-size: 12px; font-weight: 700; padding: 6px; border-radius: 8px; color: var(--muted); }
+      .toggle span.on { background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+
+      /* 진행 루트 */
+      .route { position: relative; padding-left: 26px; }
+      .route::before {
+        content: ''; position: absolute; left: 9px; top: 6px; bottom: 6px;
+        width: 3px; background: var(--line); border-radius: 2px;
+      }
+      .stop { position: relative; margin-bottom: 12px; }
+      .stop .dot {
+        position: absolute; left: -26px; top: 12px; width: 20px; height: 20px;
+        border-radius: 50%; background: #fff; border: 3px solid var(--line);
+        display: grid; place-items: center; font-size: 10px;
+      }
+      .stop.done .dot { border-color: #1a8f4c; background: #1a8f4c; color: #fff; }
+      .stop.live .dot { border-color: var(--poke-red); box-shadow: 0 0 0 4px rgba(238,21,21,.18); }
+      .stop .game-card {
+        background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px;
+      }
+      .stop.live .game-card { border-color: var(--poke-red); }
+      .gname { font-weight: 800; font-size: 13px; }
+      .gmeta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+      .state-pill { float: right; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 999px; }
+      .s-idle { background: #eef1f6; color: var(--muted); }
+      .s-live { background: #fde7e7; color: var(--poke-red); }
+      .s-done { background: #e3f6ec; color: #1a8f4c; }
+
+      /* 도감 그리드 */
+      .progress { font-size: 12px; font-weight: 700; margin-bottom: 10px; }
+      .progress .bar { height: 8px; background: #eef1f6; border-radius: 999px; margin-top: 5px; overflow: hidden; }
+      .progress .bar i { display: block; height: 100%; width: 40%; background: var(--poke-yellow); }
+      .dex { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .dexcell {
+        aspect-ratio: 1; border-radius: 12px; background: #fff; border: 1px solid var(--line);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        font-size: 11px; text-align: center; padding: 6px;
+      }
+      .dexcell .img { font-size: 30px; }
+      .dexcell.locked { background: #2b3240; color: #59617a; }
+      .dexcell.locked .img { filter: grayscale(1) brightness(0); opacity: .55; }
+      .dexcell .nm { margin-top: 2px; font-weight: 700; }
+      .dexno { font-size: 9px; color: var(--muted); }
+
+      /* 미니게임 */
+      .mini-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+      .mini-tabs span { flex: 1; text-align: center; padding: 9px; border-radius: 10px;
+        font-size: 12px; font-weight: 800; border: 1px solid var(--line); background: #fff; }
+      .mini-tabs span.on { background: var(--poke-red); color: #fff; border-color: var(--poke-red); }
+      .wheel {
+        width: 150px; height: 150px; border-radius: 50%; margin: 10px auto;
+        background: conic-gradient(#ee1515 0 25%, #2a75bb 25% 50%, #ffcb05 50% 75%, #1a8f4c 75% 100%);
+        position: relative; box-shadow: 0 6px 18px rgba(0,0,0,.18);
+      }
+      .wheel::after {
+        content: '▲'; position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+        color: var(--ink); font-size: 16px;
+      }
+      .wheel .hub {
+        position: absolute; inset: 40%; background: #fff; border-radius: 50%;
+        display: grid; place-items: center; font-size: 11px; font-weight: 800;
+      }
+      .btn-primary {
+        display: block; width: 100%; text-align: center; padding: 12px;
+        background: var(--poke-red); color: #fff; border-radius: 12px; font-weight: 800;
+        border: none; margin-top: 10px; font-size: 14px;
+      }
+      .note {
+        margin-top: 12px; padding: 9px 11px; background: #fff8e6; border: 1px solid #f3e2a8;
+        border-radius: 10px; font-size: 11px; color: #8a6d1a;
+      }
+      .input-fake {
+        background: #fff; border: 1px solid var(--line); border-radius: 10px;
+        padding: 10px; font-size: 12px; color: var(--muted); margin-bottom: 8px;
+      }
+
+      @media (max-width: 700px) {
+        .legend-grid { grid-template-columns: repeat(5, 1fr); }
+        .legend-grid .item { font-size: 10px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="doc-head">
+      <h1>🔴 가평 워크샵 · 모바일 화면 기획서</h1>
+      <p>컨셉: <b>포켓몬</b> — 트레이너 카드 · 명예의 전당 · 체육관 루트 · 도감 · 미니게임</p>
+      <p>하단 5탭 네비게이션 기반 모바일 뷰 (375px 기준). 각 폰 아래에 데이터 소스 / API 주석.</p>
+      <div class="badge-row">
+        <span class="tag">React + TS</span>
+        <span class="tag">모바일 퍼스트</span>
+        <span class="tag">기존 백엔드 API 재사용</span>
+        <span class="tag">시즌 단위</span>
+      </div>
+    </header>
+
+    <section class="legend">
+      <h2>하단 네비게이션 (5탭)</h2>
+      <div class="legend-grid">
+        <div class="item"><span class="ic">🧢</span><strong>마이/팀</strong>트레이너 카드</div>
+        <div class="item"><span class="ic">🏆</span><strong>랭킹</strong>명예의 전당</div>
+        <div class="item center"><span class="ic">⚡</span><strong>메인</strong>진행 루트</div>
+        <div class="item"><span class="ic">📕</span><strong>도감</strong>리워드 도감</div>
+        <div class="item"><span class="ic">🎲</span><strong>미니게임</strong>대표 선정</div>
+      </div>
+    </section>
+
+    <main class="board">
+      <!-- ============ 1. 마이/팀 ============ -->
+      <div class="frame">
+        <div class="phone">
+          <div class="statusbar"><span>9:41</span><span>📶 🔋</span></div>
+          <div class="screen">
+            <div class="topbar">🧢 마이페이지 <span class="right">시즌 2026</span></div>
+            <div class="body">
+              <div class="trainer">
+                <div class="flex">
+                  <div class="avatar">🧑</div>
+                  <div>
+                    <div class="name">아론</div>
+                    <span class="pill team">🔵 블루팀 · 트레이너</span>
+                  </div>
+                </div>
+                <div class="stat-row">
+                  <div class="stat"><div class="n">35</div><div class="l">내 기여 점수</div></div>
+                  <div class="stat"><div class="n">2위</div><div class="l">팀 순위</div></div>
+                  <div class="stat"><div class="n">3</div><div class="l">획득 배지</div></div>
+                </div>
+              </div>
+
+              <div class="sec-title">내 파티 (블루팀)</div>
+              <div class="party">
+                <div class="slot"><div class="face">🧑</div>아론<br /><b>35</b></div>
+                <div class="slot"><div class="face">👩</div>지나<br /><b>20</b></div>
+                <div class="slot"><div class="face">🧔</div>현우<br /><b>15</b></div>
+                <div class="slot"><div class="face">👧</div>수민<br /><b>10</b></div>
+                <div class="slot empty"><div class="face">＋</div>빈 슬롯</div>
+                <div class="slot empty"><div class="face">＋</div>빈 슬롯</div>
+              </div>
+
+              <div class="sec-title">획득 배지</div>
+              <div class="card" style="display:flex;gap:10px;font-size:24px">
+                🥇 ⚡ 🎯 <span class="muted" style="font-size:12px;align-self:center">획득한 게임 우승 배지</span>
+              </div>
+            </div>
+          </div>
+          <nav class="nav">
+            <div class="tab active"><span class="ic">🧢</span>마이</div>
+            <div class="tab"><span class="ic">🏆</span>랭킹</div>
+            <div class="tab center"><span class="ic">⚡</span></div>
+            <div class="tab"><span class="ic">📕</span>도감</div>
+            <div class="tab"><span class="ic">🎲</span>미니</div>
+          </nav>
+        </div>
+        <div class="cap">
+          <b>1. 마이페이지 / 팀페이지</b>
+          로그인 유저의 트레이너 카드 + 소속 팀(파티) 구성과 팀원별 점수.
+          <div>
+            <span class="api">GET /api/auth/login → team_id</span>
+            <span class="api">GET /seasons/:id/teams</span>
+            <span class="api">GET /sessions/:id/scores/summary</span>
+          </div>
+          <div class="concept">🔴 컨셉: 트레이너 카드 + 6슬롯 파티 = 팀원 구성</div>
+        </div>
+      </div>
+
+      <!-- ============ 2. 랭킹 ============ -->
+      <div class="frame">
+        <div class="phone">
+          <div class="statusbar"><span>9:41</span><span>📶 🔋</span></div>
+          <div class="screen">
+            <div class="topbar">🏆 명예의 전당 <span class="right">시즌 2026</span></div>
+            <div class="body">
+              <div class="toggle"><span class="on">팀 랭킹</span><span>개인 랭킹</span></div>
+              <div class="podium">
+                <div class="pod p2"><div class="face">🥈</div><div class="nm">레드팀</div><div class="sc">35</div></div>
+                <div class="pod p1"><div class="face">👑</div><div class="nm">블루팀</div><div class="sc">42</div></div>
+                <div class="pod p3"><div class="face">🥉</div><div class="nm">그린팀</div><div class="sc">28</div></div>
+              </div>
+              <div class="rank-row"><span class="no">4</span><span class="nm">🟡 옐로팀</span><span class="sc">21</span></div>
+              <div class="rank-row"><span class="no">5</span><span class="nm">🟣 퍼플팀</span><span class="sc">18</span></div>
+              <div class="rank-row"><span class="no">6</span><span class="nm">🟠 오렌지팀</span><span class="sc">12</span></div>
+              <div class="muted" style="margin-top:8px">전체 게임 합산 점수 기준 · 실시간 갱신</div>
+            </div>
+          </div>
+          <nav class="nav">
+            <div class="tab"><span class="ic">🧢</span>마이</div>
+            <div class="tab active"><span class="ic">🏆</span>랭킹</div>
+            <div class="tab center"><span class="ic">⚡</span></div>
+            <div class="tab"><span class="ic">📕</span>도감</div>
+            <div class="tab"><span class="ic">🎲</span>미니</div>
+          </nav>
+        </div>
+        <div class="cap">
+          <b>2. 랭킹 (명예의 전당)</b>
+          시즌 전체 누적 점수 랭킹. 1~3위 포디움 + 리스트, 팀/개인 토글.
+          <div>
+            <span class="api">GET /seasons/:id/teams</span>
+            <span class="api">세션별 summary 합산</span>
+            <span class="api">WS score_recorded → 실시간</span>
+          </div>
+          <div class="concept">🔴 컨셉: 포켓몬리그 명예의 전당 / 챔피언 포디움</div>
+        </div>
+      </div>
+
+      <!-- ============ 3. 메인(진행) ============ -->
+      <div class="frame">
+        <div class="phone">
+          <div class="statusbar"><span>9:41</span><span>📶 🔋</span></div>
+          <div class="screen">
+            <div class="topbar">⚡ 진행 상황 <span class="right">● LIVE</span></div>
+            <div class="body">
+              <div class="progress">
+                시즌 진행도 3 / 7 게임
+                <div class="bar"><i></i></div>
+              </div>
+              <div class="route">
+                <div class="stop done">
+                  <div class="dot">✓</div>
+                  <div class="game-card">
+                    <span class="state-pill s-done">종료</span>
+                    <div class="gname">1. 몸으로 말해요</div>
+                    <div class="gmeta">우승: 🔵 블루팀 · 탭하면 결과·점수 히스토리</div>
+                  </div>
+                </div>
+                <div class="stop done">
+                  <div class="dot">✓</div>
+                  <div class="game-card">
+                    <span class="state-pill s-done">종료</span>
+                    <div class="gname">2. 퀴즈 대결</div>
+                    <div class="gmeta">우승: 🔴 레드팀</div>
+                  </div>
+                </div>
+                <div class="stop live">
+                  <div class="dot">⚡</div>
+                  <div class="game-card">
+                    <span class="state-pill s-live">진행중</span>
+                    <div class="gname">3. 데모 미니게임</div>
+                    <div class="gmeta">채점 중 · 탭하면 진행 상세 / 실시간 점수</div>
+                  </div>
+                </div>
+                <div class="stop">
+                  <div class="dot"></div>
+                  <div class="game-card">
+                    <span class="state-pill s-idle">대기</span>
+                    <div class="gname">4. 사다리 복불복</div>
+                    <div class="gmeta">시작 전</div>
+                  </div>
+                </div>
+                <div class="stop">
+                  <div class="dot"></div>
+                  <div class="game-card">
+                    <span class="state-pill s-idle">대기</span>
+                    <div class="gname">5. 보물찾기</div>
+                    <div class="gmeta">시작 전</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <nav class="nav">
+            <div class="tab"><span class="ic">🧢</span>마이</div>
+            <div class="tab"><span class="ic">🏆</span>랭킹</div>
+            <div class="tab center active"><span class="ic">⚡</span></div>
+            <div class="tab"><span class="ic">📕</span>도감</div>
+            <div class="tab"><span class="ic">🎲</span>미니</div>
+          </nav>
+        </div>
+        <div class="cap">
+          <b>3. 메인 · 진행 상황 (홈)</b>
+          타임테이블의 게임 세션을 루트로 나열. 진행중 LIVE 강조, 종료는 ✓ 배지.
+          탭 → 게임 상세(진행/점수/결과 히스토리).
+          <div>
+            <span class="api">GET /seasons/:id/timetable</span>
+            <span class="api">GET /timetable/:id/sessions</span>
+            <span class="api">GET /sessions/:id/scores · results</span>
+            <span class="api">WS session_state_changed</span>
+          </div>
+          <div class="concept">🔴 컨셉: 포켓몬 루트의 체육관들 — 게임마다 배지 획득</div>
+        </div>
+      </div>
+
+      <!-- ============ 4. 도감 ============ -->
+      <div class="frame">
+        <div class="phone">
+          <div class="statusbar"><span>9:41</span><span>📶 🔋</span></div>
+          <div class="screen">
+            <div class="topbar">📕 리워드 도감 <span class="right">12 / 30</span></div>
+            <div class="body">
+              <div class="progress">
+                발견한 보상 12 / 30
+                <div class="bar"><i></i></div>
+              </div>
+              <div class="dex">
+                <div class="dexcell">
+                  <div class="dexno">No.001</div><div class="img">🎁</div>
+                  <div class="nm">상품권 5만</div>
+                </div>
+                <div class="dexcell">
+                  <div class="dexno">No.002</div><div class="img">🍗</div>
+                  <div class="nm">치킨 기프티콘</div>
+                </div>
+                <div class="dexcell locked">
+                  <div class="dexno">No.003</div><div class="img">❓</div>
+                  <div class="nm">???</div>
+                </div>
+                <div class="dexcell">
+                  <div class="dexno">No.004</div><div class="img">☕</div>
+                  <div class="nm">카페 쿠폰</div>
+                </div>
+                <div class="dexcell locked">
+                  <div class="dexno">No.005</div><div class="img">❓</div>
+                  <div class="nm">???</div>
+                </div>
+                <div class="dexcell locked">
+                  <div class="dexno">No.006</div><div class="img">❓</div>
+                  <div class="nm">???</div>
+                </div>
+                <div class="dexcell">
+                  <div class="dexno">No.007</div><div class="img">🎧</div>
+                  <div class="nm">에어팟</div>
+                </div>
+                <div class="dexcell locked">
+                  <div class="dexno">No.008</div><div class="img">❓</div>
+                  <div class="nm">???</div>
+                </div>
+                <div class="dexcell locked">
+                  <div class="dexno">No.009</div><div class="img">❓</div>
+                  <div class="nm">???</div>
+                </div>
+              </div>
+              <div class="note">🔒 미발견 보상은 실루엣 + ??? 로 표시. 게임에서 획득/공개되면 컬러로 해금.</div>
+            </div>
+          </div>
+          <nav class="nav">
+            <div class="tab"><span class="ic">🧢</span>마이</div>
+            <div class="tab"><span class="ic">🏆</span>랭킹</div>
+            <div class="tab center"><span class="ic">⚡</span></div>
+            <div class="tab active"><span class="ic">📕</span>도감</div>
+            <div class="tab"><span class="ic">🎲</span>미니</div>
+          </nav>
+        </div>
+        <div class="cap">
+          <b>4. 리워드 도감 (Pokédex)</b>
+          시즌의 보상 목록을 도감처럼. 미공개는 실루엣+???, 공개되면 이미지/이름/수량 해금.
+          탭 → 상세(설명·총수량·남은수량).
+          <div>
+            <span class="api">GET /rewards (신규)</span>
+            <span class="api">reward: name·image_url·total_count</span>
+            <span class="api">is_revealed 플래그(신규)</span>
+          </div>
+          <div class="concept">🔴 컨셉: 포켓몬 도감 — 실루엣→해금 수집 재미</div>
+        </div>
+      </div>
+
+      <!-- ============ 5. 미니게임 ============ -->
+      <div class="frame">
+        <div class="phone">
+          <div class="statusbar"><span>9:41</span><span>📶 🔋</span></div>
+          <div class="screen">
+            <div class="topbar">🎲 미니게임 <span class="right">대표 선정</span></div>
+            <div class="body">
+              <div class="mini-tabs"><span class="on">🎡 룰렛</span><span>🪜 사다리타기</span></div>
+              <div class="card">
+                <div class="muted" style="margin-bottom:6px">참가자 입력</div>
+                <div class="input-fake">아론, 지나, 현우, 수민 …</div>
+                <div class="wheel"><div class="hub">SPIN</div></div>
+                <button class="btn-primary">돌리기 🎯</button>
+              </div>
+              <div class="note">⚠️ 프론트 전용 (JS). 서버에 저장하지 않는 즉석 대표자 추첨. 우선순위 낮음.</div>
+            </div>
+          </div>
+          <nav class="nav">
+            <div class="tab"><span class="ic">🧢</span>마이</div>
+            <div class="tab"><span class="ic">🏆</span>랭킹</div>
+            <div class="tab center"><span class="ic">⚡</span></div>
+            <div class="tab"><span class="ic">📕</span>도감</div>
+            <div class="tab active"><span class="ic">🎲</span>미니</div>
+          </nav>
+        </div>
+        <div class="cap">
+          <b>5. 미니게임 (룰렛 / 사다리)</b>
+          즉석 대표자 선정용. 클라이언트 JS만으로 동작, 서버 저장 없음.
+          <div>
+            <span class="api">서버 호출 없음</span>
+            <span class="api">프론트 전용</span>
+          </div>
+          <div class="concept">🔴 컨셉: 룰렛/사다리 즉석 추첨 · 우선순위 낮음</div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
