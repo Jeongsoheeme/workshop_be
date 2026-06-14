@@ -189,6 +189,62 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ options, nonce }),
     }),
+
+  // --- 운영자(admin) 관리: 시즌 / 팀 / 유저 ---
+  createSeason: (token: string, name: string) =>
+    request<Season>('/api/seasons', token, {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    }),
+  updateSeason: (
+    token: string,
+    seasonId: number,
+    body: { name?: string; status?: 'preparing' | 'active' | 'done' },
+  ) =>
+    request<Season>(`/api/seasons/${seasonId}`, token, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  createTeam: (token: string, seasonId: number, name: string) =>
+    request<Team>(`/api/seasons/${seasonId}/teams`, token, {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    }),
+  updateTeam: (token: string, teamId: number, name: string) =>
+    request<Team>(`/api/teams/${teamId}`, token, {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+    }),
+  users: (token: string, params?: { role?: string; team_id?: number }) => {
+    const q = new URLSearchParams()
+    if (params?.role) q.set('role', params.role)
+    if (params?.team_id != null) q.set('team_id', String(params.team_id))
+    const qs = q.toString()
+    return request<UserProfile[]>(`/api/users${qs ? `?${qs}` : ''}`, token)
+  },
+  createUser: (
+    token: string,
+    body: {
+      username: string
+      password: string
+      nickname: string
+      role: 'admin' | 'user'
+      team_id?: number | null
+    },
+  ) =>
+    request<UserProfile>('/api/users', token, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  updateUser: (
+    token: string,
+    userId: number,
+    body: { nickname?: string; role?: 'admin' | 'user'; team_id?: number | null },
+  ) =>
+    request<UserProfile>(`/api/users/${userId}`, token, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
 }
 
 export function wsUrl(token: string): string {
