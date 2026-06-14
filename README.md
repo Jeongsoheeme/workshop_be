@@ -65,6 +65,17 @@ uvicorn app.main:app --reload --port 8000
 - Swagger: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 
+## 테스트
+
+```bash
+pytest -v
+```
+
+테스트는 **운영 DB 를 절대 건드리지 않는다.** `DATABASE_URL` 의 DB 이름에 `_test`
+를 붙인 별도 DB(예: `workshop_26_test`)를 자동 생성하고, 매 실행 시작 시
+`drop_all + create_all` 로 스키마를 초기화한 뒤 거기서만 실행된다.
+DB 이름은 `TEST_DATABASE_NAME` 환경변수로 바꿀 수 있다.
+
 ## WebSocket 연결
 
 ```javascript

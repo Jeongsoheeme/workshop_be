@@ -1,17 +1,49 @@
 """테스트 공통 픽스처.
 
-ASGI 앱을 직접 호출하는 httpx 클라이언트와, 로그인 테스트용 admin 시드를 제공한다.
-실제 .env 의 DATABASE_URL(workshop_26) 에 붙는 E2E 테스트다.
+핵심: **실제 운영 DB(workshop_26)를 건드리지 않도록** 테스트 전용 DB
+(workshop_26_test)로 격리한다. app 모듈을 import 하기 전에 환경변수
+DATABASE_URL 을 테스트 DB 로 덮어쓰므로, 앱 엔진 / AsyncSessionLocal /
+get_db 의존성은 물론 테스트가 직접 쓰는 세션까지 모두 테스트 DB 를 바라본다.
+
+테스트 DB 는 세션 시작 시 drop_all + create_all 로 깨끗하게 초기화된다.
+TEST_DATABASE_NAME 환경변수로 DB 이름을 바꿀 수 있다(기본: <원본>_test).
 """
 
-import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select
+import asyncio
+import os
 
-from app.core.security import hash_password
-from app.db.session import AsyncSessionLocal, engine
-from app.main import app
-from app.models.user import User
+from sqlalchemy import make_url
+
+# ---------------------------------------------------------------------------
+# 1. app import 전에 DATABASE_URL 을 테스트 DB 로 강제한다.
+# ---------------------------------------------------------------------------
+def _resolve_test_url() -> tuple["make_url", "make_url", str]:
+    raw = os.environ.get("DATABASE_URL")
+    if not raw:
+        from dotenv import dotenv_values
+
+        raw = dotenv_values(".env").get("DATABASE_URL")
+    if not raw:
+        raise RuntimeError("DATABASE_URL 을 .env 또는 환경변수에서 찾을 수 없습니다.")
+    orig = make_url(raw)
+    test_name = os.environ.get("TEST_DATABASE_NAME", f"{orig.database}_test")
+    test_url = orig.set(database=test_name)
+    return orig, test_url, test_name
+
+
+_ORIG_URL, _TEST_URL, _TEST_NAME = _resolve_test_url()
+os.environ["DATABASE_URL"] = _TEST_URL.render_as_string(hide_password=False)
+
+# 이제 app 모듈을 import 하면 테스트 DB 기준 엔진이 만들어진다.
+import pytest_asyncio  # noqa: E402
+from httpx import ASGITransport, AsyncClient  # noqa: E402
+from sqlalchemy import select  # noqa: E402
+
+from app.core.security import hash_password  # noqa: E402
+from app.db.base import Base  # noqa: E402
+from app.db.session import AsyncSessionLocal, engine  # noqa: E402
+from app.main import app  # noqa: E402
+from app.models.user import User  # noqa: E402
 
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "admin1234"
@@ -19,6 +51,47 @@ USER_USERNAME = "tester"
 USER_PASSWORD = "tester1234"
 
 
+# ---------------------------------------------------------------------------
+# 2. 테스트 DB 생성 + 스키마 초기화 (수집 전에 1회)
+# ---------------------------------------------------------------------------
+async def _create_database_if_missing() -> None:
+    import asyncpg
+
+    conn = await asyncpg.connect(
+        host=_ORIG_URL.host,
+        port=_ORIG_URL.port,
+        user=_ORIG_URL.username,
+        password=_ORIG_URL.password,
+        database=_ORIG_URL.database,  # 임의의 기존 DB 에서 CREATE DATABASE 실행
+    )
+    try:
+        exists = await conn.fetchval(
+            "SELECT 1 FROM pg_database WHERE datname = $1", _TEST_NAME
+        )
+        if not exists:
+            await conn.execute(f'CREATE DATABASE "{_TEST_NAME}"')
+    finally:
+        await conn.close()
+
+
+async def _reset_schema() -> None:
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
+    await engine.dispose()  # 부트스트랩 루프에 묶인 커넥션 정리
+
+
+def _bootstrap() -> None:
+    asyncio.run(_create_database_if_missing())
+    asyncio.run(_reset_schema())
+
+
+_bootstrap()
+
+
+# ---------------------------------------------------------------------------
+# 3. 픽스처
+# ---------------------------------------------------------------------------
 async def _ensure_user(username: str, password: str, role: str) -> None:
     async with AsyncSessionLocal() as db:
         existing = await db.execute(select(User).where(User.username == username))
