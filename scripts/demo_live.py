@@ -17,6 +17,7 @@ import json
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 BASE = "http://localhost:8000"
@@ -41,8 +42,13 @@ def _req(method: str, path: str, token: str | None = None, body: dict | None = N
 
 
 def login() -> str:
-    res = _req("POST", "/api/auth/login", body={"username": ADMIN_USER, "password": ADMIN_PASS})
-    return res["access_token"]
+    data = urllib.parse.urlencode(
+        {"username": ADMIN_USER, "password": ADMIN_PASS}
+    ).encode()
+    req = urllib.request.Request(f"{BASE}/api/auth/login", data=data, method="POST")
+    req.add_header("Content-Type", "application/x-www-form-urlencoded")
+    with urllib.request.urlopen(req) as res:
+        return json.loads(res.read())["access_token"]
 
 
 def setup() -> None:

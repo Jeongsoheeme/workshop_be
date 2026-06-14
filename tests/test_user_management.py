@@ -92,11 +92,11 @@ async def test_update_password_then_login(client, admin_headers):
 
     # 새 비밀번호로 로그인 성공, 옛 비밀번호는 실패
     ok = await client.post(
-        "/api/auth/login", json={"username": username, "password": "newpw456"}
+        "/api/auth/login", data={"username": username, "password": "newpw456"}
     )
     assert ok.status_code == 200
     bad = await client.post(
-        "/api/auth/login", json={"username": username, "password": "oldpw123"}
+        "/api/auth/login", data={"username": username, "password": "oldpw123"}
     )
     assert bad.status_code == 401
 

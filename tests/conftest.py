@@ -140,7 +140,7 @@ async def seeded_user() -> dict[str, str]:
 
 
 async def _login_token(client: AsyncClient, creds: dict[str, str]) -> str:
-    res = await client.post("/api/auth/login", json=creds)
+    res = await client.post("/api/auth/login", data=creds)
     return res.json()["access_token"]
 
 

@@ -132,7 +132,8 @@ export const api = {
   login: (username: string, password: string) =>
     request<LoginResponse>('/api/auth/login', null, {
       method: 'POST',
-      body: JSON.stringify({ username, password }),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ username, password }).toString(),
     }),
   seasons: (token: string) => request<Season[]>('/api/seasons', token),
   timetable: (token: string, seasonId: number) =>

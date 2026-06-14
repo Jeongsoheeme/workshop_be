@@ -8,7 +8,7 @@ async def test_health(client):
 
 
 async def test_login_returns_token(client, seeded_admin):
-    res = await client.post("/api/auth/login", json=seeded_admin)
+    res = await client.post("/api/auth/login", data=seeded_admin)
     assert res.status_code == 200
     data = res.json()
     assert data["access_token"]
@@ -17,7 +17,7 @@ async def test_login_returns_token(client, seeded_admin):
 
 
 async def test_me_with_token(client, seeded_admin):
-    login = await client.post("/api/auth/login", json=seeded_admin)
+    login = await client.post("/api/auth/login", data=seeded_admin)
     token = login.json()["access_token"]
 
     res = await client.get(
@@ -31,7 +31,7 @@ async def test_me_with_token(client, seeded_admin):
 async def test_login_wrong_password(client, seeded_admin):
     res = await client.post(
         "/api/auth/login",
-        json={"username": seeded_admin["username"], "password": "wrong-password"},
+        data={"username": seeded_admin["username"], "password": "wrong-password"},
     )
     assert res.status_code == 401
 
