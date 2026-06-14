@@ -81,8 +81,11 @@ export default function AppShell() {
         {TABS.map((t) => (
           <button
             key={t.key}
-            className={`tab${tab === t.key ? ' active' : ''}${t.center ? ' center' : ''}`}
-            onClick={() => setTab(t.key)}
+            className={`tab${tab === t.key && !adminOpen ? ' active' : ''}${t.center ? ' center' : ''}`}
+            onClick={() => {
+              setTab(t.key)
+              setAdminOpen(false)
+            }}
           >
             <span className="ic">{t.icon}</span>
             {t.label}

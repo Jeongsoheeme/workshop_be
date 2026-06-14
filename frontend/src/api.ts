@@ -14,9 +14,20 @@ export interface UserProfile {
   username: string
   nickname: string
   role: string
-  team_id: number | null
   point: number
   profile_image: string | null
+}
+
+/** 시즌 내 유저-팀 배정 현황 */
+export interface SeasonMembership {
+  user_id: number
+  team_id: number
+}
+
+/** 선택 시즌에서의 내 팀 (없으면 team_id=null) */
+export interface MyTeam {
+  team_id: number | null
+  name: string | null
 }
 
 export interface Season {
@@ -73,6 +84,7 @@ export interface TeamMember {
 
 export interface Reward {
   id: number
+  season_id: number
   name: string
   description: string | null
   total_count: number
@@ -134,6 +146,10 @@ async function request<T>(
     }
     throw new ApiError(res.status, detail)
   }
+  // 204 No Content 등 본문 없는 응답
+  if (res.status === 204 || res.headers.get('content-length') === '0') {
+    return undefined as T
+  }
   return (await res.json()) as T
 }
 
@@ -161,11 +177,30 @@ export const api = {
     request<TeamScore[]>(`/api/seasons/${seasonId}/scoreboard`, token),
   teamMembers: (token: string, teamId: number) =>
     request<TeamMember[]>(`/api/teams/${teamId}/members`, token),
-  rewards: (token: string) => request<Reward[]>('/api/rewards', token),
+  myTeam: (token: string, seasonId: number) =>
+    request<MyTeam>(`/api/seasons/${seasonId}/my-team`, token),
+  seasonMembers: (token: string, seasonId: number) =>
+    request<SeasonMembership[]>(`/api/seasons/${seasonId}/members`, token),
+  rewards: (token: string, seasonId: number) =>
+    request<Reward[]>(`/api/seasons/${seasonId}/rewards`, token),
   results: (token: string, sessionId: number) =>
     request<GameResult[]>(`/api/sessions/${sessionId}/results`, token),
   games: (token: string) => request<Game[]>('/api/games', token),
   game: (token: string, gameId: number) => request<Game>(`/api/games/${gameId}`, token),
+  createGame: (
+    token: string,
+    body: { title: string; description?: string | null; participant_type: string; input_type: string },
+  ) =>
+    request<Game>('/api/games', token, { method: 'POST', body: JSON.stringify(body) }),
+  createTimetable: (
+    token: string,
+    seasonId: number,
+    body: { game_id: number; order_index: number; label?: string | null },
+  ) =>
+    request<TimetableEntry>(`/api/seasons/${seasonId}/timetable`, token, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 
   // --- 운영자(admin) 전용 쓰기 ---
   createSession: (token: string, timetableId: number) =>
@@ -215,22 +250,19 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ name }),
     }),
-  users: (token: string, params?: { role?: string; team_id?: number }) => {
+  deleteSeason: (token: string, seasonId: number) =>
+    request<void>(`/api/seasons/${seasonId}`, token, { method: 'DELETE' }),
+  deleteTeam: (token: string, teamId: number) =>
+    request<void>(`/api/teams/${teamId}`, token, { method: 'DELETE' }),
+  users: (token: string, params?: { role?: string }) => {
     const q = new URLSearchParams()
     if (params?.role) q.set('role', params.role)
-    if (params?.team_id != null) q.set('team_id', String(params.team_id))
     const qs = q.toString()
     return request<UserProfile[]>(`/api/users${qs ? `?${qs}` : ''}`, token)
   },
   createUser: (
     token: string,
-    body: {
-      username: string
-      password: string
-      nickname: string
-      role: 'admin' | 'user'
-      team_id?: number | null
-    },
+    body: { username: string; password: string; nickname: string; role: 'admin' | 'user' },
   ) =>
     request<UserProfile>('/api/users', token, {
       method: 'POST',
@@ -239,12 +271,37 @@ export const api = {
   updateUser: (
     token: string,
     userId: number,
-    body: { nickname?: string; role?: 'admin' | 'user'; team_id?: number | null },
+    body: { nickname?: string; role?: 'admin' | 'user' },
   ) =>
     request<UserProfile>(`/api/users/${userId}`, token, {
       method: 'PATCH',
       body: JSON.stringify(body),
     }),
+
+  // --- 시즌별 팀 배정 (멤버십) ---
+  assignMember: (token: string, seasonId: number, teamId: number, userId: number) =>
+    request<SeasonMembership>(
+      `/api/seasons/${seasonId}/teams/${teamId}/members`,
+      token,
+      { method: 'POST', body: JSON.stringify({ user_id: userId }) },
+    ),
+  unassignMember: (token: string, seasonId: number, userId: number) =>
+    request<void>(`/api/seasons/${seasonId}/members/${userId}`, token, {
+      method: 'DELETE',
+    }),
+
+  // --- 시즌별 리워드 도감 관리 ---
+  createReward: (
+    token: string,
+    seasonId: number,
+    body: { name: string; description?: string | null; total_count: number; image_url?: string | null },
+  ) =>
+    request<Reward>(`/api/seasons/${seasonId}/rewards`, token, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  deleteReward: (token: string, rewardId: number) =>
+    request<void>(`/api/rewards/${rewardId}`, token, { method: 'DELETE' }),
 }
 
 export function wsUrl(token: string): string {

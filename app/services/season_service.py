@@ -23,13 +23,37 @@ async def create_season(db: AsyncSession, data: SeasonCreate, admin_id: int) -> 
 
 
 async def list_seasons(db: AsyncSession) -> list[Season]:
-    result = await db.execute(select(Season).order_by(Season.id))
+    """삭제되지 않은 시즌만."""
+    result = await db.execute(
+        select(Season).where(Season.del_yn.is_(False)).order_by(Season.id)
+    )
     return list(result.scalars().all())
 
 
 async def get_season(db: AsyncSession, season_id: int) -> Season | None:
-    result = await db.execute(select(Season).where(Season.id == season_id))
+    result = await db.execute(
+        select(Season).where(Season.id == season_id, Season.del_yn.is_(False))
+    )
     return result.scalar_one_or_none()
+
+
+async def get_active_season(db: AsyncSession) -> Season | None:
+    """현재 활성(active) 시즌 (여러 개면 가장 최근)."""
+    result = await db.execute(
+        select(Season)
+        .where(Season.status == "active", Season.del_yn.is_(False))
+        .order_by(Season.id.desc())
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
+async def delete_season(db: AsyncSession, season: Season, admin_id: int) -> None:
+    """소프트 삭제."""
+    season.del_yn = True
+    season.updated_by = admin_id
+    season.updated_at = _utcnow()
+    await db.commit()
 
 
 async def update_season(

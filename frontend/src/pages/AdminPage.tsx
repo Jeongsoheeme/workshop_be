@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api, ApiError, type Team, type UserProfile } from '../api'
+import {
+  api,
+  ApiError,
+  type Game,
+  type Reward,
+  type SeasonMembership,
+  type Team,
+  type TimetableEntry,
+  type UserProfile,
+} from '../api'
 import { useAuth } from '../auth'
 import { useSeason } from '../season'
 
@@ -33,6 +42,14 @@ export default function AdminPage({ onClose }: Props) {
     }
   }
 
+  // 인라인 이름 수정 (시즌/팀 공용)
+  const [edit, setEdit] = useState<{ kind: 'season' | 'team'; id: number } | null>(null)
+  const [editValue, setEditValue] = useState('')
+  const startEdit = (kind: 'season' | 'team', id: number, value: string) => {
+    setEdit({ kind, id })
+    setEditValue(value)
+  }
+
   // ---------- 시즌 ----------
   const [seasonName, setSeasonName] = useState('')
 
@@ -48,6 +65,20 @@ export default function AdminPage({ onClose }: Props) {
   const activateSeason = (id: number) =>
     run(async () => {
       await api.updateSeason(t, id, { status: 'active' })
+      await refreshSeasons()
+    })
+
+  const renameSeason = (id: number) =>
+    run(async () => {
+      await api.updateSeason(t, id, { name: editValue.trim() })
+      setEdit(null)
+      await refreshSeasons()
+    })
+
+  const deleteSeason = (id: number) =>
+    run(async () => {
+      if (!confirm('이 시즌을 삭제할까요? (소프트 삭제)')) return
+      await api.deleteSeason(t, id)
       await refreshSeasons()
     })
 
@@ -73,21 +104,53 @@ export default function AdminPage({ onClose }: Props) {
       loadTeams()
     })
 
-  // ---------- 유저 배치 ----------
+  const renameTeam = (id: number) =>
+    run(async () => {
+      await api.updateTeam(t, id, editValue.trim())
+      setEdit(null)
+      loadTeams()
+    })
+
+  const deleteTeam = (id: number) =>
+    run(async () => {
+      if (!confirm('이 팀을 삭제할까요? (소속 멤버 배정은 해제됩니다)')) return
+      await api.deleteTeam(t, id)
+      loadTeams()
+      loadMemberships()
+    })
+
+  // ---------- 유저 배치 (멤버십) ----------
   const [users, setUsers] = useState<UserProfile[]>([])
+  const [memberships, setMemberships] = useState<SeasonMembership[]>([])
+
   const loadUsers = useCallback(() => {
     api.users(t).then(setUsers).catch(() => setUsers([]))
   }, [t])
   useEffect(loadUsers, [loadUsers])
 
-  const assignTeam = (userId: number, value: string) =>
+  const loadMemberships = useCallback(() => {
+    if (seasonId == null) {
+      setMemberships([])
+      return
+    }
+    api.seasonMembers(t, seasonId).then(setMemberships).catch(() => setMemberships([]))
+  }, [t, seasonId])
+  useEffect(loadMemberships, [loadMemberships])
+
+  const teamOf = (userId: number) =>
+    memberships.find((m) => m.user_id === userId)?.team_id ?? null
+
+  const assign = (userId: number, value: string) =>
     run(async () => {
-      const team_id = value === '' ? null : Number(value)
-      await api.updateUser(t, userId, { team_id })
-      loadUsers()
+      if (seasonId == null) return
+      if (value === '') {
+        await api.unassignMember(t, seasonId, userId)
+      } else {
+        await api.assignMember(t, seasonId, Number(value), userId)
+      }
+      loadMemberships()
     })
 
-  // 새 참가자 추가
   const [nu, setNu] = useState({ username: '', nickname: '', password: '' })
   const createUser = () =>
     run(async () => {
@@ -98,12 +161,75 @@ export default function AdminPage({ onClose }: Props) {
         nickname: nu.nickname.trim(),
         password: nu.password.trim(),
         role: 'user',
-        team_id: null, // 생성 후 아래 목록에서 팀 배정
       })
       setNu({ username: '', nickname: '', password: '' })
       loadUsers()
     })
 
+  // ---------- 타임테이블 ----------
+  const [entries, setEntries] = useState<TimetableEntry[]>([])
+  const [games, setGames] = useState<Game[]>([])
+  const [pickGame, setPickGame] = useState('')
+
+  const loadEntries = useCallback(() => {
+    if (seasonId == null) {
+      setEntries([])
+      return
+    }
+    api.timetable(t, seasonId).then(setEntries).catch(() => setEntries([]))
+  }, [t, seasonId])
+  useEffect(loadEntries, [loadEntries])
+  useEffect(() => {
+    api.games(t).then(setGames).catch(() => setGames([]))
+  }, [t])
+
+  const addEntry = () =>
+    run(async () => {
+      if (seasonId == null) throw new ApiError(400, '먼저 시즌을 선택하세요.')
+      if (!pickGame) throw new ApiError(400, '게임을 선택하세요.')
+      const game = games.find((g) => g.id === Number(pickGame))
+      await api.createTimetable(t, seasonId, {
+        game_id: Number(pickGame),
+        order_index: entries.length + 1,
+        label: game ? `${entries.length + 1}. ${game.title}` : null,
+      })
+      setPickGame('')
+      loadEntries()
+    })
+
+  // ---------- 리워드 도감 ----------
+  const [rewards, setRewards] = useState<Reward[]>([])
+  const [nr, setNr] = useState({ name: '', total_count: '1', image_url: '' })
+
+  const loadRewards = useCallback(() => {
+    if (seasonId == null) {
+      setRewards([])
+      return
+    }
+    api.rewards(t, seasonId).then(setRewards).catch(() => setRewards([]))
+  }, [t, seasonId])
+  useEffect(loadRewards, [loadRewards])
+
+  const addReward = () =>
+    run(async () => {
+      if (seasonId == null) throw new ApiError(400, '먼저 시즌을 선택하세요.')
+      if (!nr.name.trim()) throw new ApiError(400, '상품명을 입력하세요.')
+      await api.createReward(t, seasonId, {
+        name: nr.name.trim(),
+        total_count: Number(nr.total_count) || 1,
+        image_url: nr.image_url.trim() || null,
+      })
+      setNr({ name: '', total_count: '1', image_url: '' })
+      loadRewards()
+    })
+
+  const removeReward = (id: number) =>
+    run(async () => {
+      await api.deleteReward(t, id)
+      loadRewards()
+    })
+
+  const gameTitle = (id: number) => games.find((g) => g.id === id)?.title ?? `게임 #${id}`
   const teamName2 = (id: number | null) =>
     id == null ? '미배정' : teams.find((x) => x.id === id)?.name ?? `타 시즌 #${id}`
 
@@ -115,7 +241,7 @@ export default function AdminPage({ onClose }: Props) {
       <h2 className="detail-title">🛠 운영 관리</h2>
       {error && <p className="error">{error}</p>}
 
-      {/* 시즌 */}
+      {/* ① 시즌 */}
       <h3 className="sec-title">① 시즌</h3>
       <div className="op-row">
         <input
@@ -130,27 +256,47 @@ export default function AdminPage({ onClose }: Props) {
       <div className="admin-list">
         {seasons.map((s) => (
           <div key={s.id} className={`admin-row${s.id === seasonId ? ' sel' : ''}`}>
-            <button className="row-main" onClick={() => setSeasonId(s.id)}>
-              <b>{s.name}</b>
-              <span className={`chip ${s.status === 'active' ? 'state' : ''}`}>
-                {STATUS_LABEL[s.status] ?? s.status}
-              </span>
-            </button>
-            {s.status !== 'active' && (
-              <button className="mini-btn" disabled={busy} onClick={() => activateSeason(s.id)}>
-                활성화
-              </button>
+            {edit?.kind === 'season' && edit.id === s.id ? (
+              <>
+                <input value={editValue} onChange={(e) => setEditValue(e.target.value)} />
+                <button className="mini-btn" disabled={busy} onClick={() => renameSeason(s.id)}>
+                  저장
+                </button>
+                <button className="mini-btn ghost" onClick={() => setEdit(null)}>
+                  취소
+                </button>
+              </>
+            ) : (
+              <>
+                <button className="row-main" onClick={() => setSeasonId(s.id)}>
+                  <b>{s.name}</b>
+                  <span className={`chip ${s.status === 'active' ? 'state' : ''}`}>
+                    {STATUS_LABEL[s.status] ?? s.status}
+                  </span>
+                </button>
+                {s.status !== 'active' && (
+                  <button className="mini-btn" disabled={busy} onClick={() => activateSeason(s.id)}>
+                    활성화
+                  </button>
+                )}
+                <button className="mini-btn ghost" onClick={() => startEdit('season', s.id, s.name)}>
+                  수정
+                </button>
+                <button className="mini-btn danger" disabled={busy} onClick={() => deleteSeason(s.id)}>
+                  삭제
+                </button>
+              </>
             )}
           </div>
         ))}
       </div>
 
-      {/* 팀 */}
-      <h3 className="sec-title">② 팀 {seasonId != null && '(선택 시즌)'}</h3>
       {seasonId == null ? (
-        <p className="muted">시즌을 먼저 선택하세요.</p>
+        <p className="muted" style={{ marginTop: 16 }}>시즌을 먼저 선택/생성하세요.</p>
       ) : (
         <>
+          {/* ② 팀 */}
+          <h3 className="sec-title">② 팀 (선택 시즌)</h3>
           <div className="op-row">
             <input
               placeholder="새 팀 이름 (예: 🔴 레드팀)"
@@ -167,68 +313,160 @@ export default function AdminPage({ onClose }: Props) {
             ) : (
               teams.map((tm) => (
                 <div key={tm.id} className="admin-row">
-                  <span className="row-main">
-                    <b>{tm.name}</b>
-                    <span className="chip">
-                      {users.filter((u) => u.team_id === tm.id).length}명
-                    </span>
-                  </span>
+                  {edit?.kind === 'team' && edit.id === tm.id ? (
+                    <>
+                      <input value={editValue} onChange={(e) => setEditValue(e.target.value)} />
+                      <button className="mini-btn" disabled={busy} onClick={() => renameTeam(tm.id)}>
+                        저장
+                      </button>
+                      <button className="mini-btn ghost" onClick={() => setEdit(null)}>
+                        취소
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="row-main">
+                        <b>{tm.name}</b>
+                        <span className="chip">
+                          {memberships.filter((m) => m.team_id === tm.id).length}명
+                        </span>
+                      </span>
+                      <button className="mini-btn ghost" onClick={() => startEdit('team', tm.id, tm.name)}>
+                        수정
+                      </button>
+                      <button className="mini-btn danger" disabled={busy} onClick={() => deleteTeam(tm.id)}>
+                        삭제
+                      </button>
+                    </>
+                  )}
                 </div>
               ))
             )}
           </div>
-        </>
-      )}
 
-      {/* 유저 배치 */}
-      <h3 className="sec-title">③ 유저 배치</h3>
-      <div className="op-row" style={{ marginBottom: 10 }}>
-        <input
-          placeholder="아이디"
-          value={nu.username}
-          onChange={(e) => setNu({ ...nu, username: e.target.value })}
-        />
-        <input
-          placeholder="닉네임"
-          value={nu.nickname}
-          onChange={(e) => setNu({ ...nu, nickname: e.target.value })}
-        />
-        <input
-          placeholder="비밀번호"
-          value={nu.password}
-          onChange={(e) => setNu({ ...nu, password: e.target.value })}
-        />
-        <button className="op-btn" disabled={busy} onClick={createUser}>
-          참가자 추가
-        </button>
-      </div>
-      <div className="admin-list">
-        {users.map((u) => (
-          <div key={u.id} className="admin-row">
-            <span className="row-main">
-              <b>{u.nickname}</b>
-              <span className="muted">@{u.username}</span>
-              {u.role === 'admin' && <span className="chip state">운영자</span>}
-              <span className="muted" style={{ marginLeft: 'auto' }}>
-                {teamName2(u.team_id)}
-              </span>
-            </span>
-            <select
-              className="assign"
-              value={teams.some((x) => x.id === u.team_id) ? String(u.team_id) : ''}
-              disabled={busy || seasonId == null}
-              onChange={(e) => assignTeam(u.id, e.target.value)}
-            >
-              <option value="">미배정</option>
-              {teams.map((tm) => (
-                <option key={tm.id} value={tm.id}>
-                  {tm.name}
+          {/* ③ 유저 배치 */}
+          <h3 className="sec-title">③ 유저 배치</h3>
+          <div className="op-row" style={{ marginBottom: 10 }}>
+            <input
+              placeholder="아이디"
+              value={nu.username}
+              onChange={(e) => setNu({ ...nu, username: e.target.value })}
+            />
+            <input
+              placeholder="닉네임"
+              value={nu.nickname}
+              onChange={(e) => setNu({ ...nu, nickname: e.target.value })}
+            />
+            <input
+              placeholder="비밀번호"
+              value={nu.password}
+              onChange={(e) => setNu({ ...nu, password: e.target.value })}
+            />
+            <button className="op-btn" disabled={busy} onClick={createUser}>
+              참가자 추가
+            </button>
+          </div>
+          <div className="admin-list">
+            {users.map((u) => (
+              <div key={u.id} className="admin-row">
+                <span className="row-main">
+                  <b>{u.nickname}</b>
+                  <span className="muted">@{u.username}</span>
+                  {u.role === 'admin' && <span className="chip state">운영자</span>}
+                  <span className="muted" style={{ marginLeft: 'auto' }}>
+                    {teamName2(teamOf(u.id))}
+                  </span>
+                </span>
+                <select
+                  className="assign"
+                  value={teamOf(u.id) ?? ''}
+                  disabled={busy}
+                  onChange={(e) => assign(u.id, e.target.value)}
+                >
+                  <option value="">미배정</option>
+                  {teams.map((tm) => (
+                    <option key={tm.id} value={tm.id}>
+                      {tm.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </div>
+
+          {/* ④ 타임테이블 */}
+          <h3 className="sec-title">④ 타임테이블</h3>
+          <div className="op-row">
+            <select value={pickGame} onChange={(e) => setPickGame(e.target.value)}>
+              <option value="">게임 선택</option>
+              {games.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.title}
                 </option>
               ))}
             </select>
+            <button className="op-btn" disabled={busy} onClick={addEntry}>
+              추가
+            </button>
           </div>
-        ))}
-      </div>
+          <div className="admin-list">
+            {entries.length === 0 ? (
+              <p className="muted">등록된 게임이 없습니다.</p>
+            ) : (
+              entries
+                .slice()
+                .sort((a, b) => a.order_index - b.order_index)
+                .map((en) => (
+                  <div key={en.id} className="admin-row">
+                    <span className="row-main">
+                      <b>{en.order_index}. {en.label ?? gameTitle(en.game_id)}</b>
+                    </span>
+                  </div>
+                ))
+            )}
+          </div>
+
+          {/* ⑤ 리워드 도감 */}
+          <h3 className="sec-title">⑤ 리워드 도감</h3>
+          <div className="op-row" style={{ marginBottom: 10 }}>
+            <input
+              placeholder="상품명"
+              value={nr.name}
+              onChange={(e) => setNr({ ...nr, name: e.target.value })}
+            />
+            <input
+              className="op-score"
+              type="number"
+              placeholder="수량"
+              value={nr.total_count}
+              onChange={(e) => setNr({ ...nr, total_count: e.target.value })}
+            />
+            <button className="op-btn" disabled={busy} onClick={addReward}>
+              추가
+            </button>
+          </div>
+          <div className="op-row" style={{ marginBottom: 10 }}>
+            <input
+              placeholder="이미지 URL (있으면 공개, 없으면 실루엣)"
+              value={nr.image_url}
+              onChange={(e) => setNr({ ...nr, image_url: e.target.value })}
+            />
+          </div>
+          <div className="admin-list">
+            {rewards.map((r) => (
+              <div key={r.id} className="admin-row">
+                <span className="row-main">
+                  <b>{r.image_url ? '🎁' : '❓'} {r.name}</b>
+                  <span className="chip">{r.total_count}개</span>
+                </span>
+                <button className="mini-btn danger" disabled={busy} onClick={() => removeReward(r.id)}>
+                  삭제
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }

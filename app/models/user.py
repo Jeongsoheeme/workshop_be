@@ -17,11 +17,6 @@ class User(Base, TimestampMixin):
     password: Mapped[str] = mapped_column(String(255), nullable=False, comment="비밀번호")
     nickname: Mapped[str] = mapped_column(String(50), nullable=False, comment="화면 표시 이름")
     role: Mapped[str] = mapped_column(String(10), nullable=False, comment="권한 (admin/user)")
-    team_id: Mapped[int | None] = mapped_column(
-        ForeignKey("teams.id", name="fk_users_team"),
-        nullable=True,
-        comment="소속 팀 ID (팀 빌딩 전 NULL)",
-    )
     point: Mapped[int] = mapped_column(
         server_default=text("0"), nullable=False, comment="개인 누적 포인트"
     )
@@ -35,7 +30,5 @@ class User(Base, TimestampMixin):
     )
 
     # --- relationships ---
-    team: Mapped["Team | None"] = relationship(
-        back_populates="members", foreign_keys=[team_id]
-    )
+    memberships: Mapped[list["TeamMembership"]] = relationship(back_populates="user")
     chat_logs: Mapped[list["GameChatLog"]] = relationship(back_populates="user")

@@ -608,6 +608,7 @@ button:disabled {
 .admin-row .row-main {
   flex: 1; display: flex; align-items: center; gap: 8px;
   background: none; border: none; padding: 0; text-align: left; cursor: pointer; font-size: 13px;
+  color: var(--ink); /* 전역 button color:#fff 덮어쓰기 — 시즌명이 안 보이던 버그 수정 */
   min-width: 0;
 }
 .admin-row .row-main b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -615,4 +616,6 @@ button:disabled {
   width: auto; flex: none; padding: 6px 10px; font-size: 12px; font-weight: 700;
   background: var(--poke-blue); color: #fff; border: none; border-radius: 8px;
 }
+.mini-btn.ghost { background: #eef1f6; color: #55607a; }
+.mini-btn.danger { background: #fde7e7; color: var(--poke-red); }
 .assign { width: auto; flex: none; max-width: 130px; padding: 6px 8px; font-size: 12px; }

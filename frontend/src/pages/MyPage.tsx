@@ -10,32 +10,37 @@ export default function MyPage() {
   const { seasonId } = useSeason()
   const { lastEvent } = useLive()
 
+  const [teamId, setTeamId] = useState<number | null>(null)
   const [teamName, setTeamName] = useState<string | null>(null)
   const [members, setMembers] = useState<TeamMember[]>([])
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [scoreboard, setScoreboard] = useState<TeamScore[]>([])
-
-  const teamId = user?.team_id ?? null
 
   // 내 프로필 (profile_image 포함)
   useEffect(() => {
     api.me(t).then(setProfile).catch(() => setProfile(null))
   }, [t])
 
+  // 선택 시즌에서의 내 팀 (시즌이 바뀌면 따라 바뀐다)
+  useEffect(() => {
+    if (seasonId == null) return
+    setTeamId(null)
+    setTeamName(null)
+    setMembers([])
+    api
+      .myTeam(t, seasonId)
+      .then((mt) => {
+        setTeamId(mt.team_id)
+        setTeamName(mt.name)
+      })
+      .catch(() => setTeamId(null))
+  }, [t, seasonId])
+
   // 팀원
   useEffect(() => {
     if (teamId == null) return
     api.teamMembers(t, teamId).then(setMembers).catch(() => setMembers([]))
   }, [t, teamId])
-
-  // 팀 이름 (시즌 팀 목록에서 매핑)
-  useEffect(() => {
-    if (seasonId == null || teamId == null) return
-    api
-      .teams(t, seasonId)
-      .then((teams) => setTeamName(teams.find((x) => x.id === teamId)?.name ?? null))
-      .catch(() => setTeamName(null))
-  }, [t, seasonId, teamId])
 
   // 시즌 누적 점수 (팀 순위/총점)
   const loadScoreboard = () => {

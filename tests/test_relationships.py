@@ -1,4 +1,4 @@
-"""모델 relationship 탐색 테스트 (Season ↔ Team ↔ User)."""
+"""모델 relationship 탐색 테스트 (Season ↔ Team ↔ TeamMembership ↔ User)."""
 
 import uuid
 
@@ -8,11 +8,12 @@ from sqlalchemy.orm import selectinload
 from app.db.session import AsyncSessionLocal
 from app.models.season import Season
 from app.models.team import Team
+from app.models.team_member import TeamMembership
 from app.models.user import User
 
 
 async def _seed_chain():
-    """creator admin → season → team → member 를 만들고 id 들을 돌려준다."""
+    """creator admin → season → team → 멤버십 을 만들고 id 들을 돌려준다."""
     suffix = uuid.uuid4().hex[:8]
     async with AsyncSessionLocal() as db:
         creator = User(
@@ -30,19 +31,20 @@ async def _seed_chain():
         await db.flush()
 
         member = User(
-            username=f"member_{suffix}",
-            password="x",
-            nickname="m",
-            role="user",
-            team_id=team.id,
+            username=f"member_{suffix}", password="x", nickname="m", role="user"
         )
         db.add(member)
+        await db.flush()
+
+        db.add(
+            TeamMembership(season_id=season.id, team_id=team.id, user_id=member.id)
+        )
         await db.commit()
         return season.id, team.id, member.id
 
 
 async def test_forward_navigation():
-    """Season → teams → members (one-to-many)."""
+    """Season → teams → memberships → user."""
     season_id, team_id, member_id = await _seed_chain()
 
     async with AsyncSessionLocal() as db:
@@ -50,16 +52,21 @@ async def test_forward_navigation():
             await db.execute(
                 select(Season)
                 .where(Season.id == season_id)
-                .options(selectinload(Season.teams).selectinload(Team.members))
+                .options(
+                    selectinload(Season.teams)
+                    .selectinload(Team.memberships)
+                    .selectinload(TeamMembership.user)
+                )
             )
         ).scalar_one()
 
         assert [t.id for t in season.teams] == [team_id]
-        assert member_id in [m.id for m in season.teams[0].members]
+        members = [m.user.id for m in season.teams[0].memberships]
+        assert member_id in members
 
 
 async def test_reverse_navigation():
-    """User → team → season (many-to-one 체이닝)."""
+    """User → memberships → team → season (체이닝)."""
     season_id, team_id, member_id = await _seed_chain()
 
     async with AsyncSessionLocal() as db:
@@ -67,10 +74,15 @@ async def test_reverse_navigation():
             await db.execute(
                 select(User)
                 .where(User.id == member_id)
-                .options(selectinload(User.team).selectinload(Team.season))
+                .options(
+                    selectinload(User.memberships)
+                    .selectinload(TeamMembership.team)
+                    .selectinload(Team.season)
+                )
             )
         ).scalar_one()
 
-        assert member.team is not None
-        assert member.team.id == team_id
-        assert member.team.season.id == season_id
+        assert len(member.memberships) == 1
+        membership = member.memberships[0]
+        assert membership.team.id == team_id
+        assert membership.team.season.id == season_id

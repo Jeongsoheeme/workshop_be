@@ -28,13 +28,10 @@ async def get_user_by_username(db: AsyncSession, username: str) -> User | None:
 async def list_users(
     db: AsyncSession,
     role: str | None = None,
-    team_id: int | None = None,
 ) -> list[User]:
     stmt = select(User).order_by(User.id)
     if role is not None:
         stmt = stmt.where(User.role == role)
-    if team_id is not None:
-        stmt = stmt.where(User.team_id == team_id)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -50,7 +47,6 @@ async def create_user(db: AsyncSession, data: UserCreate) -> User:
         password=hash_password(data.password),
         nickname=data.nickname,
         role=data.role,
-        team_id=data.team_id,
     )
     db.add(user)
     await db.commit()

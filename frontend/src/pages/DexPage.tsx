@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, type Reward } from '../api'
 import { useAuth } from '../auth'
+import { useSeason } from '../season'
 
 // 도감 셀 표시: image_url 이 있으면 공개, 없으면 실루엣(???)
 const REVEAL_ICON = '🎁'
@@ -8,12 +9,14 @@ const REVEAL_ICON = '🎁'
 export default function DexPage() {
   const { token } = useAuth()
   const t = token as string
+  const { seasonId } = useSeason()
   const [rewards, setRewards] = useState<Reward[]>([])
   const [selected, setSelected] = useState<Reward | null>(null)
 
   useEffect(() => {
-    api.rewards(t).then(setRewards).catch(() => setRewards([]))
-  }, [t])
+    if (seasonId == null) return
+    api.rewards(t, seasonId).then(setRewards).catch(() => setRewards([]))
+  }, [t, seasonId])
 
   const revealed = (r: Reward) => Boolean(r.image_url)
   const foundCount = rewards.filter(revealed).length
