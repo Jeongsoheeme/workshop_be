@@ -8,6 +8,11 @@ class Reward(Base, TimestampMixin):
     __tablename__ = "rewards"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    season_id: Mapped[int] = mapped_column(
+        ForeignKey("seasons.id", name="fk_rewards_season"),
+        nullable=False,
+        comment="소속 시즌 ID (시즌별 도감)",
+    )
     name: Mapped[str] = mapped_column(
         String(100), nullable=False, comment="상품명 (예: 신세계 상품권 5만원)"
     )

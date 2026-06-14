@@ -30,6 +30,7 @@ from app.models.game_session import GameResult, GameScoreLog, GameSession
 from app.models.reward import Reward
 from app.models.season import Season
 from app.models.team import Team
+from app.models.team_member import TeamMembership
 from app.models.timetable import Timetable
 from app.models.user import User
 
@@ -113,22 +114,29 @@ async def seed() -> None:
         db.add_all(teams)
         await db.flush()
 
-        # --- 참가자 18명 ---
+        # --- 참가자 18명 (팀 배정은 멤버십으로) ---
+        membership_plan: list[tuple[User, Team]] = []
         for i, (nickname, username, pokemon, role, point) in enumerate(PARTICIPANTS):
             team = teams[i // TEAM_SIZE]
             if username == BOOTSTRAP_ADMIN:
-                admin.team_id = team.id
+                membership_plan.append((admin, team))
                 continue
+            u = User(
+                username=username,
+                password=hash_password(f"{username}1234"),
+                nickname=nickname,
+                role=role,
+                point=point,
+                profile_image=_profile_image(pokemon, nickname),
+            )
+            db.add(u)
+            membership_plan.append((u, team))
+        await db.flush()
+
+        # 시즌별 팀 배정 (team_members)
+        for u, team in membership_plan:
             db.add(
-                User(
-                    username=username,
-                    password=hash_password(f"{username}1234"),
-                    nickname=nickname,
-                    role=role,
-                    team_id=team.id,
-                    point=point,
-                    profile_image=_profile_image(pokemon, nickname),
-                )
+                TeamMembership(season_id=season.id, team_id=team.id, user_id=u.id)
             )
 
         # --- 게임 8개 ---
@@ -224,7 +232,13 @@ async def seed() -> None:
         ]
         for name, desc, total, img in rewards_def:
             db.add(
-                Reward(name=name, description=desc, total_count=total, image_url=img)
+                Reward(
+                    season_id=season.id,
+                    name=name,
+                    description=desc,
+                    total_count=total,
+                    image_url=img,
+                )
             )
 
         await db.commit()

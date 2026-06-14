@@ -41,11 +41,6 @@ async def test_create_invalid_role_422(client, admin_headers):
     assert res.status_code == 422
 
 
-async def test_create_unknown_team_400(client, admin_headers):
-    res = await _create_user(client, admin_headers, team_id=99999999)
-    assert res.status_code == 400
-
-
 async def test_list_and_filter(client, admin_headers):
     res = await _create_user(client, admin_headers, role="user")
     created_id = res.json()["id"]
@@ -101,7 +96,7 @@ async def test_update_password_then_login(client, admin_headers):
     assert bad.status_code == 401
 
 
-async def test_assign_team(client, admin_headers):
+async def test_assign_team_membership(client, admin_headers):
     # 시즌 + 팀 준비
     season = await client.post(
         "/api/seasons", json={"name": _unique("시즌")}, headers=admin_headers
@@ -111,13 +106,38 @@ async def test_assign_team(client, admin_headers):
         f"/api/seasons/{season_id}/teams", json={"name": "팀A"}, headers=admin_headers
     )
     team_id = team.json()["id"]
-
     user_id = (await _create_user(client, admin_headers)).json()["id"]
-    res = await client.patch(
-        f"/api/users/{user_id}", json={"team_id": team_id}, headers=admin_headers
+
+    # 멤버십 배정
+    res = await client.post(
+        f"/api/seasons/{season_id}/teams/{team_id}/members",
+        json={"user_id": user_id},
+        headers=admin_headers,
     )
-    assert res.status_code == 200
-    assert res.json()["team_id"] == team_id
+    assert res.status_code == 201
+    assert res.json() == {"user_id": user_id, "team_id": team_id}
+
+    # 시즌 멤버십 현황에 반영
+    members = (
+        await client.get(f"/api/seasons/{season_id}/members", headers=admin_headers)
+    ).json()
+    assert {"user_id": user_id, "team_id": team_id} in members
+
+    # 팀 멤버 목록에도 반영
+    team_members = (
+        await client.get(f"/api/teams/{team_id}/members", headers=admin_headers)
+    ).json()
+    assert any(m["id"] == user_id for m in team_members)
+
+    # 해제
+    res = await client.delete(
+        f"/api/seasons/{season_id}/members/{user_id}", headers=admin_headers
+    )
+    assert res.status_code == 204
+    members = (
+        await client.get(f"/api/seasons/{season_id}/members", headers=admin_headers)
+    ).json()
+    assert all(m["user_id"] != user_id for m in members)
 
 
 async def test_create_requires_admin(client, user_headers):

@@ -12,6 +12,7 @@ from app.models.raffle import RaffleTicket
 from app.models.reward import Reward
 from app.models.season import Season
 from app.models.team import Team
+from app.models.team_member import TeamMembership
 from app.models.timetable import Timetable
 from app.models.user import User
 from app.models.vote import VoteBallot, VoteItem, VoteRecord
@@ -20,6 +21,7 @@ __all__ = [
     "User",
     "Season",
     "Team",
+    "TeamMembership",
     "Game",
     "Timetable",
     "GameSession",

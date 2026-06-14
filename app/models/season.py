@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, text
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -39,6 +39,12 @@ class Season(Base, TimestampMixin):
         ForeignKey("users.id", name="fk_seasons_updated"),
         nullable=True,
         comment="최종 수정한 운영자",
+    )
+    del_yn: Mapped[bool] = mapped_column(
+        Boolean,
+        server_default=text("false"),
+        nullable=False,
+        comment="소프트 삭제 여부",
     )
 
     # --- relationships ---

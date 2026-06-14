@@ -18,14 +18,6 @@ async def _get_or_404(db: DbSession, user_id: int):
     return user
 
 
-async def _validate_team(db: DbSession, team_id: int | None) -> None:
-    if team_id is not None and not await user_service.team_exists(db, team_id):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="존재하지 않는 팀입니다.",
-        )
-
-
 @router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def create_user(
     payload: UserCreate, db: DbSession, admin: AdminUser
@@ -35,7 +27,6 @@ async def create_user(
             status_code=status.HTTP_409_CONFLICT,
             detail="이미 사용 중인 아이디입니다.",
         )
-    await _validate_team(db, payload.team_id)
     return await user_service.create_user(db, payload)
 
 
@@ -44,9 +35,8 @@ async def list_users(
     db: DbSession,
     admin: AdminUser,
     role: Annotated[str | None, Query()] = None,
-    team_id: Annotated[int | None, Query()] = None,
 ) -> list[UserRead]:
-    return await user_service.list_users(db, role=role, team_id=team_id)
+    return await user_service.list_users(db, role=role)
 
 
 @router.get("/{user_id}", response_model=UserRead)
@@ -59,6 +49,4 @@ async def update_user(
     user_id: int, payload: UserUpdate, db: DbSession, admin: AdminUser
 ) -> UserRead:
     user = await _get_or_404(db, user_id)
-    if "team_id" in payload.model_fields_set:
-        await _validate_team(db, payload.team_id)
     return await user_service.update_user(db, user, payload, admin.id)

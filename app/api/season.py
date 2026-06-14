@@ -39,3 +39,10 @@ async def update_season(
 ) -> SeasonRead:
     season = await _get_or_404(db, season_id)
     return await season_service.update_season(db, season, payload, admin.id)
+
+
+@router.delete("/{season_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_season(season_id: int, db: DbSession, admin: AdminUser) -> None:
+    """시즌 소프트 삭제."""
+    season = await _get_or_404(db, season_id)
+    await season_service.delete_season(db, season, admin.id)
