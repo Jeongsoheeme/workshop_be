@@ -594,3 +594,25 @@ button:disabled {
 .btn-primary { display: block; width: 100%; text-align: center; padding: 12px; background: var(--poke-red); color: #fff; border-radius: 12px; font-weight: 800; border: none; font-size: 14px; }
 .winner { text-align: center; font-weight: 800; color: var(--poke-red); margin-top: 10px; }
 .note { margin-top: 12px; padding: 9px 11px; background: #fff8e6; border: 1px solid #f3e2a8; border-radius: 10px; font-size: 11px; color: #8a6d1a; }
+
+/* ---------- 운영 관리 ---------- */
+.admin .op-row { margin-bottom: 6px; }
+.admin .op-row input { flex: 1; min-width: 90px; }
+.admin-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.admin-row {
+  display: flex; align-items: center; gap: 8px;
+  background: #fff; border: 1px solid var(--line); border-radius: 10px;
+  padding: 8px 10px; font-size: 13px;
+}
+.admin-row.sel { border-color: var(--poke-blue); box-shadow: 0 0 0 2px rgba(42, 117, 187, 0.15); }
+.admin-row .row-main {
+  flex: 1; display: flex; align-items: center; gap: 8px;
+  background: none; border: none; padding: 0; text-align: left; cursor: pointer; font-size: 13px;
+  min-width: 0;
+}
+.admin-row .row-main b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-btn {
+  width: auto; flex: none; padding: 6px 10px; font-size: 12px; font-weight: 700;
+  background: var(--poke-blue); color: #fff; border: none; border-radius: 8px;
+}
+.assign { width: auto; flex: none; max-width: 130px; padding: 6px 8px; font-size: 12px; }
