@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api import (
     auth,
     game,
+    game_round,
     game_session,
     result,
     reward,
@@ -52,6 +53,7 @@ def create_app() -> FastAPI:
     app.include_router(game.router, prefix="/api")
     app.include_router(timetable.router, prefix="/api")
     app.include_router(game_session.router, prefix="/api")
+    app.include_router(game_round.router, prefix="/api")
     app.include_router(score.router, prefix="/api")
     app.include_router(result.router, prefix="/api")
     app.include_router(reward.router, prefix="/api")

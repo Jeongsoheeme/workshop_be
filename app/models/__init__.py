@@ -1,6 +1,7 @@
 from app.models.buff import Buff, TeamBuff
 from app.models.envelope import Envelope
 from app.models.game import Game
+from app.models.game_round import GameRound, RoundSubmission
 from app.models.game_session import (
     GameChatLog,
     GameResult,
@@ -28,6 +29,8 @@ __all__ = [
     "GameScoreLog",
     "GameResult",
     "GameChatLog",
+    "GameRound",
+    "RoundSubmission",
     "Reward",
     "Buff",
     "TeamBuff",
