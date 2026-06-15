@@ -55,7 +55,13 @@ body {
 }
 
 /* ---------- 메인 ---------- */
-.main {
+.main-container {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.map-canvas {
   height: 100vh;
   background-image: url('/images/progress-bg.jpg');
   background-size: cover;
@@ -381,25 +387,97 @@ button:disabled {
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
+  border-bottom: 3px solid var(--poke-yellow);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* 포켓볼 아이콘 */
+.pokeball-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(255, 255, 255, 0.9);
+  background: linear-gradient(to bottom, #fff 0% 46%, #222 46% 54%, #fff 54% 100%);
+  position: relative;
+  flex-shrink: 0;
+}
+.pokeball-icon::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border-radius: 50%;
+  border: 2px solid #222;
+  z-index: 1;
+}
+
+/* 트레이너 정보 */
+.shell-trainer-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.shell-trainer-label {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1.8px;
+  opacity: 0.75;
+  line-height: 1;
+  margin-bottom: 2px;
 }
 .shell-greet { font-weight: 800; font-size: 14px; white-space: nowrap; }
+
+/* 시즌 셀렉터 */
 .season-switch {
   width: auto;
   flex: 1;
   min-width: 0;
-  padding: 6px 8px;
+  padding: 5px 8px;
   font-size: 12px;
+  font-weight: 700;
   border-radius: 8px;
-  border: none;
-  background: rgba(255, 255, 255, 0.16);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.18);
   color: #fff;
 }
 .season-switch option { color: #1f2430; }
+
+/* LIVE 뱃지 */
 .shell-top .live { margin-left: 0; }
-.shell-top .live.on { color: #fff; background: rgba(255, 255, 255, 0.22); }
-.shell-top .live.off { color: #ffe0e0; background: rgba(0, 0, 0, 0.12); }
+.shell-top .live.on {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.22);
+  animation: live-pulse 2s ease-in-out infinite;
+}
+.shell-top .live.off { color: #ffe0e0; background: rgba(0, 0, 0, 0.15); }
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+
+/* 나가기 버튼 */
+.shell-exit {
+  width: auto;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.shell-exit:hover { background: rgba(255, 255, 255, 0.28); }
+
 .shell-top .link { color: #fff; opacity: 0.9; }
 .shell-main { flex: 1; overflow-y: auto; background: #f7f8fb; }
+.shell-main.no-scroll { overflow: hidden; }
 .shell-main::-webkit-scrollbar { width: 0; }
 
 .sec-title { font-size: 15px; font-weight: 800; margin: 18px 0 10px; }
@@ -523,7 +601,54 @@ button:disabled {
 }
 
 .gym-marker.done .gym-title { color: #a8f0c6; }
-.gym-marker.live .gym-title { color: #ffd76a; }
+
+.gym-marker.live .gym-title {
+  color: #fff;
+  background: var(--poke-red);
+  box-shadow: 0 0 10px rgba(238, 21, 21, 0.7);
+  animation: live-title-pulse 1.4s ease-in-out infinite;
+}
+
+.gym-marker.live::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 3px solid var(--poke-red);
+  animation: live-ring 1.4s ease-out infinite;
+  pointer-events: none;
+}
+
+.gym-marker.live::after {
+  content: '● LIVE';
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--poke-red);
+  background: #fff;
+  border-radius: 999px;
+  padding: 2px 6px;
+  white-space: nowrap;
+  animation: live-title-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes live-ring {
+  0%   { transform: translate(-50%, -50%) scale(0.8); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(2);   opacity: 0; }
+}
+
+@keyframes live-title-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
 
 .progress { font-size: 12px; font-weight: 700; margin-bottom: 12px; }
 .progress .bar { height: 8px; background: #eef1f6; border-radius: 999px; margin-top: 5px; overflow: hidden; }

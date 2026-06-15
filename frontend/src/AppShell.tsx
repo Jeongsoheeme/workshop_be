@@ -30,7 +30,13 @@ export default function AppShell() {
   return (
     <div className="shell">
       <header className="shell-top">
-        <span className="shell-greet">👋 {user?.nickname}</span>
+        <div className="shell-trainer-info">
+          <div className="pokeball-icon" />
+          <div>
+            <div className="shell-trainer-label">TRAINER</div>
+            <span className="shell-greet">{user?.nickname}</span>
+          </div>
+        </div>
         <select
           className="season-switch"
           value={seasonId ?? ''}
@@ -42,18 +48,18 @@ export default function AppShell() {
             </option>
           ))}
         </select>
-        <span className={connected ? 'live on' : 'live off'}>{connected ? '● LIVE' : '○'}</span>
+        <span className={connected ? 'live on' : 'live off'}>{connected ? '● LIVE' : '○ OFF'}</span>
         {isAdmin && (
           <button className="link" onClick={() => setAdminOpen(true)} title="운영 관리">
             ⚙️
           </button>
         )}
-        <button className="link" onClick={logout}>
+        <button className="shell-exit" onClick={logout}>
           나가기
         </button>
       </header>
 
-      <main className="shell-main">
+      <main className={`shell-main${tab === 'main' && !adminOpen ? ' no-scroll' : ''}`}>
         {adminOpen && isAdmin ? (
           <AdminPage onClose={() => setAdminOpen(false)} />
         ) : loading ? (
