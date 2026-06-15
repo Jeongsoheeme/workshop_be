@@ -54,6 +54,7 @@ class GameSession(Base, TimestampMixin):
     score_logs: Mapped[list["GameScoreLog"]] = relationship(back_populates="session")
     results: Mapped[list["GameResult"]] = relationship(back_populates="session")
     chat_logs: Mapped[list["GameChatLog"]] = relationship(back_populates="session")
+    rounds: Mapped[list["GameRound"]] = relationship(back_populates="session")
     envelopes: Mapped[list["Envelope"]] = relationship(
         back_populates="session", foreign_keys="Envelope.session_id"
     )
@@ -138,6 +139,11 @@ class GameChatLog(Base):
         ForeignKey("game_sessions.id", name="fk_game_chat_logs_session"),
         nullable=False,
         comment="연결된 게임 세션 ID",
+    )
+    round_id: Mapped[int | None] = mapped_column(
+        ForeignKey("game_rounds.id", name="fk_game_chat_logs_round"),
+        nullable=True,
+        comment="연결된 라운드 ID (라운드제 채팅게임의 문제 단위)",
     )
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", name="fk_game_chat_logs_user"),

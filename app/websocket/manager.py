@@ -16,6 +16,8 @@ class ConnectionManager:
         self._user_connections: dict[int, list[WebSocket]] = defaultdict(list)
         # team_id -> set of user_ids
         self._team_members: dict[int, set[int]] = defaultdict(set)
+        # session_id -> set of user_ids (게임 상세 페이지 접속자 = 그 세션의 방)
+        self._session_watchers: dict[int, set[int]] = defaultdict(set)
 
     async def connect(self, websocket: WebSocket, user_id: int, team_id: int | None) -> None:
         await websocket.accept()
@@ -30,6 +32,15 @@ class ConnectionManager:
             self._user_connections.pop(user_id, None)
             if team_id is not None:
                 self._team_members[team_id].discard(user_id)
+            # 마지막 연결이 끊기면 모든 세션 방에서 제거
+            for watchers in self._session_watchers.values():
+                watchers.discard(user_id)
+
+    def join_session(self, session_id: int, user_id: int) -> None:
+        self._session_watchers[session_id].add(user_id)
+
+    def leave_session(self, session_id: int, user_id: int) -> None:
+        self._session_watchers[session_id].discard(user_id)
 
     async def send_to_user(self, user_id: int, message: dict[str, Any]) -> None:
         for ws in self._user_connections.get(user_id, []):
@@ -37,6 +48,12 @@ class ConnectionManager:
 
     async def send_to_team(self, team_id: int, message: dict[str, Any]) -> None:
         for user_id in self._team_members.get(team_id, set()):
+            await self.send_to_user(user_id, message)
+
+    async def broadcast_to_session(
+        self, session_id: int, message: dict[str, Any]
+    ) -> None:
+        for user_id in list(self._session_watchers.get(session_id, set())):
             await self.send_to_user(user_id, message)
 
     async def broadcast(self, message: dict[str, Any]) -> None:
