@@ -1,6 +1,8 @@
 """WebSocket 메시지 핸들러 + 상태 전이 브로드캐스트 테스트."""
 
 import uuid
+from datetime import datetime
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -119,3 +121,42 @@ async def test_transition_broadcasts_state(client, admin_headers, monkeypatch):
         and c["state"] == "ready"
         for c in calls
     )
+
+
+async def test_chat_broadcast_includes_log_id(monkeypatch):
+    from app.websocket import events
+
+    calls: list[tuple[int, dict]] = []
+
+    async def fake_broadcast_to_session(session_id: int, message: dict) -> None:
+        calls.append((session_id, message))
+
+    monkeypatch.setattr(events.manager, "broadcast_to_session", fake_broadcast_to_session)
+
+    chat = SimpleNamespace(
+        id=33,
+        session_id=7,
+        round_id=2,
+        user_id=5,
+        message="봄날",
+        is_correct=True,
+        server_time=datetime(2026, 6, 16, 4, 0, 0),
+    )
+    await events.broadcast_chat_message(chat, "민지")
+
+    assert calls == [
+        (
+            7,
+            {
+                "type": "chat_message",
+                "id": 33,
+                "session_id": 7,
+                "round_id": 2,
+                "user_id": 5,
+                "nickname": "민지",
+                "message": "봄날",
+                "is_correct": True,
+                "server_time": "2026-06-16T04:00:00",
+            },
+        )
+    ]

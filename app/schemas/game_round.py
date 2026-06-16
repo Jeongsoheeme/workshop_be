@@ -53,3 +53,18 @@ class SubmissionResult(BaseModel):
 
     round_id: int
     accepted: bool
+
+
+class ChatLogRead(BaseModel):
+    """운영자용 채팅 로그. 정답 여부는 참가자 응답에는 노출하지 않는다."""
+
+    id: int
+    session_id: int
+    round_id: int | None
+    user_id: int
+    nickname: str
+    team_id: int | None
+    team_name: str | None
+    message: str
+    is_correct: bool
+    server_time: datetime

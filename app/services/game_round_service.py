@@ -5,12 +5,16 @@
 
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.game_round import GameRound, RoundSubmission
-from app.models.game_session import GameChatLog
+from app.models.game_session import GameChatLog, GameSession
+from app.models.team import Team
+from app.models.team_member import TeamMembership
+from app.models.timetable import Timetable
+from app.models.user import User
 from app.schemas.game_round import RoundCreate, RoundUpdate
 
 
@@ -72,6 +76,43 @@ async def get_open_round(db: AsyncSession, session_id: int) -> GameRound | None:
         )
     )
     return result.scalar_one_or_none()
+
+
+async def list_chat_logs(
+    db: AsyncSession, session_id: int, round_id: int | None = None
+) -> list[dict]:
+    """운영자용 채팅 로그. 서버 저장 순서로 빠른 답변 순위를 판단한다."""
+    stmt = (
+        select(
+            GameChatLog.id,
+            GameChatLog.session_id,
+            GameChatLog.round_id,
+            GameChatLog.user_id,
+            User.nickname,
+            Team.id.label("team_id"),
+            Team.name.label("team_name"),
+            GameChatLog.message,
+            GameChatLog.is_correct,
+            GameChatLog.server_time,
+        )
+        .join(User, User.id == GameChatLog.user_id)
+        .join(GameSession, GameSession.id == GameChatLog.session_id)
+        .join(Timetable, Timetable.id == GameSession.timetable_id)
+        .outerjoin(
+            TeamMembership,
+            and_(
+                TeamMembership.season_id == Timetable.season_id,
+                TeamMembership.user_id == GameChatLog.user_id,
+            ),
+        )
+        .outerjoin(Team, Team.id == TeamMembership.team_id)
+        .where(GameChatLog.session_id == session_id)
+        .order_by(GameChatLog.server_time, GameChatLog.id)
+    )
+    if round_id is not None:
+        stmt = stmt.where(GameChatLog.round_id == round_id)
+    result = await db.execute(stmt)
+    return [dict(row._mapping) for row in result.all()]
 
 
 async def update_round(

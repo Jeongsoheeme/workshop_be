@@ -188,6 +188,44 @@ async def test_record_chat_judges_against_open_round(client, admin_headers):
         assert miss.round_id == round_.id
 
 
+async def test_admin_can_list_chat_logs_in_server_order(client, admin_headers):
+    session_id = await _button_session(client, admin_headers, input_type="chat")
+    r = (
+        await _create_round(
+            client, admin_headers, session_id, prompt="제목은?", correct_answer="봄날"
+        )
+    ).json()
+    await client.post(f"/api/rounds/{r['id']}/open", headers=admin_headers)
+    uid = await _make_user()
+
+    async with AsyncSessionLocal() as db:
+        round_ = await game_round_service.get_open_round(db, session_id)
+        await game_round_service.record_chat(db, session_id, round_, uid, "여름밤")
+        await game_round_service.record_chat(db, session_id, round_, uid, "봄날")
+
+    res = await client.get(
+        f"/api/sessions/{session_id}/chat-logs",
+        params={"round_id": r["id"]},
+        headers=admin_headers,
+    )
+    assert res.status_code == 200
+    rows = res.json()
+    assert [row["message"] for row in rows] == ["여름밤", "봄날"]
+    assert [row["is_correct"] for row in rows] == [False, True]
+    assert rows[0]["id"] < rows[1]["id"]
+    assert rows[0]["nickname"]
+    assert rows[0]["team_id"] is None
+
+
+async def test_chat_logs_require_admin(client, admin_headers, user_headers):
+    session_id = await _button_session(client, admin_headers, input_type="chat")
+    res = await client.get(
+        f"/api/sessions/{session_id}/chat-logs",
+        headers=user_headers,
+    )
+    assert res.status_code == 403
+
+
 async def test_round_endpoints_require_admin(client, admin_headers, user_headers):
     session_id = await _button_session(client, admin_headers)
     # 일반 유저는 라운드 생성 불가

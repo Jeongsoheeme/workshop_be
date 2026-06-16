@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.deps import AdminUser, CurrentUser, DbSession
 from app.models.game_round import GameRound
 from app.schemas.game_round import (
+    ChatLogRead,
     RoundCreate,
     RoundRead,
     RoundReveal,
@@ -74,6 +75,17 @@ async def current_round(
             detail="진행 중인 라운드가 없습니다.",
         )
     return round_
+
+
+@router.get("/sessions/{session_id}/chat-logs", response_model=list[ChatLogRead])
+async def list_chat_logs(
+    session_id: int,
+    db: DbSession,
+    admin: AdminUser,
+    round_id: int | None = Query(default=None),
+) -> list[dict]:
+    await _get_session_or_404(db, session_id)
+    return await game_round_service.list_chat_logs(db, session_id, round_id)
 
 
 @router.get("/rounds/{round_id}", response_model=RoundRead)

@@ -86,6 +86,7 @@ async def broadcast_chat_message(chat: GameChatLog, nickname: str) -> None:
         chat.session_id,
         {
             "type": "chat_message",
+            "id": chat.id,
             "session_id": chat.session_id,
             "round_id": chat.round_id,
             "user_id": chat.user_id,
