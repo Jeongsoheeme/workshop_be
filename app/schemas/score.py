@@ -37,6 +37,7 @@ class ScoreRead(BaseModel):
 class ScoreSummaryItem(BaseModel):
     subject_type: str
     subject_id: int
+    subject_name: str | None = None
     total_score: int
 
 

@@ -281,24 +281,29 @@ async def get_tap_results(db: AsyncSession, round_: GameRound) -> list[TapResult
 
 
 async def _user_info(db: AsyncSession, round_: GameRound) -> dict[int, dict]:
-    """세션 참가자의 nickname / team_name 조회."""
+    """세션 시즌 기준 참가자의 nickname / team_name 조회."""
+    season_id = await db.scalar(
+        select(Timetable.season_id)
+        .join(GameSession, GameSession.timetable_id == Timetable.id)
+        .where(GameSession.id == round_.session_id)
+    )
+    if season_id is None:
+        return {}
+
     stmt = (
         select(
             User.id,
             User.nickname,
             Team.name.label("team_name"),
         )
-        .join(GameSession, GameSession.id == round_.session_id)
-        .join(Timetable, Timetable.id == GameSession.timetable_id)
         .outerjoin(
             TeamMembership,
             and_(
-                TeamMembership.season_id == Timetable.season_id,
+                TeamMembership.season_id == season_id,
                 TeamMembership.user_id == User.id,
             ),
         )
         .outerjoin(Team, Team.id == TeamMembership.team_id)
-        .where(GameSession.id == round_.session_id)
     )
     rows = (await db.execute(stmt)).all()
     return {r.id: {"nickname": r.nickname, "team_name": r.team_name} for r in rows}
