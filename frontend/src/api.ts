@@ -66,6 +66,19 @@ export interface ScoreSummaryItem {
   total_score: number
 }
 
+export interface ScoreLog {
+  id: number
+  session_id: number
+  subject_type: string
+  subject_id: number
+  chat_log_id: number | null
+  score: number
+  memo: string | null
+  created_by: number
+  created_at: string
+  updated_at: string | null
+}
+
 export type GameState = 'idle' | 'ready' | 'in_progress' | 'scoring' | 'reward' | 'done'
 
 export interface TeamScore {
@@ -258,12 +271,20 @@ export const api = {
   createScore: (
     token: string,
     sessionId: number,
-    body: { subject_type: 'team' | 'user'; subject_id: number; score: number; memo?: string },
+    body: {
+      subject_type: 'team' | 'user'
+      subject_id: number
+      score: number
+      memo?: string
+      chat_log_id?: number | null
+    },
   ) =>
     request<unknown>(`/api/sessions/${sessionId}/scores`, token, {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  scores: (token: string, sessionId: number) =>
+    request<ScoreLog[]>(`/api/sessions/${sessionId}/scores`, token),
   rouletteSpin: (token: string, sessionId: number, options: string[], nonce: number) =>
     request<RouletteSpinResult>(`/api/sessions/${sessionId}/roulette/spin`, token, {
       method: 'POST',

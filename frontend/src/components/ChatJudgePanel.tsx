@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { api, ApiError, type ChatLog, type GameRound } from '../api'
+import { api, ApiError, type ChatLog, type GameRound, type ScoreLog } from '../api'
 import { useLive } from '../live'
 
 interface Props {
@@ -17,18 +17,24 @@ function timeLabel(value: string) {
 export default function ChatJudgePanel({ token, sessionId, round, onScored }: Props) {
   const { subscribe } = useLive()
   const [logs, setLogs] = useState<ChatLog[]>([])
+  const [scores, setScores] = useState<ScoreLog[]>([])
   const [score, setScore] = useState(10)
   const [busyId, setBusyId] = useState<number | null>(null)
-  const [awardedIds, setAwardedIds] = useState<Set<number>>(new Set())
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!round) {
       setLogs([])
+      setScores([])
       return
     }
     try {
-      setLogs(await api.chatLogs(token, sessionId, round.id))
+      const [nextLogs, nextScores] = await Promise.all([
+        api.chatLogs(token, sessionId, round.id),
+        api.scores(token, sessionId),
+      ])
+      setLogs(nextLogs)
+      setScores(nextScores)
       setError(null)
     } catch (e) {
       setError(e instanceof ApiError ? e.message : String(e))
@@ -47,7 +53,17 @@ export default function ChatJudgePanel({ token, sessionId, round, onScored }: Pr
     })
   }, [load, round, sessionId, subscribe])
 
+  useEffect(() => {
+    return subscribe((e) => {
+      if (e.type === 'score_recorded' && e.session_id === sessionId) load()
+    })
+  }, [load, sessionId, subscribe])
+
   const correctLogs = useMemo(() => logs.filter((log) => log.is_correct), [logs])
+  const awardedIds = useMemo(
+    () => new Set(scores.map((s) => s.chat_log_id).filter((id): id is number => id != null)),
+    [scores],
+  )
 
   const award = async (log: ChatLog) => {
     const subjectType = log.team_id == null ? 'user' : 'team'
@@ -60,8 +76,8 @@ export default function ChatJudgePanel({ token, sessionId, round, onScored }: Pr
         subject_id: subjectId,
         score,
         memo: `노래맞추기 #${round?.order_index ?? '-'} ${log.nickname}: ${log.message}`,
+        chat_log_id: log.id,
       })
-      setAwardedIds((prev) => new Set(prev).add(log.id))
       onScored()
     } catch (e) {
       setError(e instanceof ApiError ? e.message : String(e))

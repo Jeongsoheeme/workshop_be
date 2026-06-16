@@ -214,7 +214,7 @@ export default function GameDetail({
             />
           )}
 
-          {isAdmin && state && (
+          {isAdmin && state && !isChat && (
             <OperatorPanel
               key={sessionId}
               token={t}
