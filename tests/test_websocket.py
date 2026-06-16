@@ -156,7 +156,7 @@ async def test_chat_broadcast_includes_log_id(monkeypatch):
                 "nickname": "민지",
                 "message": "봄날",
                 "is_correct": True,
-                "server_time": "2026-06-16T04:00:00",
+                "server_time": "2026-06-16T04:00:00Z",
             },
         )
     ]

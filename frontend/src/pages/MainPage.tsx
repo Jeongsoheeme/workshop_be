@@ -11,15 +11,6 @@ import { useSeason } from '../season'
 import { useLive } from '../live'
 import GameDetail from './GameDetail'
 
-const STATE_PILL: Record<GameState, { cls: string; label: string }> = {
-  idle: { cls: 's-idle', label: '대기' },
-  ready: { cls: 's-idle', label: '준비' },
-  in_progress: { cls: 's-live', label: '진행중' },
-  scoring: { cls: 's-live', label: '채점중' },
-  reward: { cls: 's-live', label: '보상' },
-  done: { cls: 's-done', label: '종료' },
-}
-
 export default function MainPage() {
   const { token } = useAuth()
   const t = token as string
@@ -79,16 +70,17 @@ export default function MainPage() {
     )
   }
 
-  // order_index 1(맨 아래) → 8(맨 위) 순서로 체육관 위치 정의
+  // order_index 1(맨 아래) → 9(맨 위) 순서로 섬 위치 정의 (progress-bg.png 기준)
   const GYM_POSITIONS: { x: string; y: string }[] = [
-    { x: '75%', y: '95%' }, // 1 - First Gym
-    { x: '22%', y: '86%' }, // 2 - Ice Mountain Gym
-    { x: '56%', y: '75%' }, // 3 - Forest Gym
-    { x: '80%', y: '64%' }, // 4 - Coastal Gym
-    { x: '30%', y: '54%' }, // 5 - Power Gym
-    { x: '78%', y: '46%' }, // 6 - Volcano Gym
-    { x: '30%', y: '35%' }, // 7 - Dojo Gym
-    { x: '76%', y: '26%' }, // 8 - Final Gym
+    { x: '50%', y: '91%' }, // 1 - 몸으로 말해요 (하단 중앙)
+    { x: '23%', y: '76%' }, // 2 - 퀴즈 대결 (좌)
+    { x: '65%', y: '66%' }, // 3 - 노래 맞추기 (우)
+    { x: '25%', y: '56%' }, // 4 - 보물찾기 (좌)
+    { x: '63%', y: '46%' }, // 5 - 릴레이 게임 (우)
+    { x: '23%', y: '36%' }, // 6 - 철인 3종 (좌)
+    { x: '66%', y: '25%' }, // 7 - 신발 던지기 (우)
+    { x: '21%', y: '16%' }, // 8 - 좀비게임 (좌)
+    { x: '50%', y: '6%'  }, // 9 - 버튼 챌린지 (상단 중앙)
   ]
 
   return (

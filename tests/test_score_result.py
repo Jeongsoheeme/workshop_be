@@ -208,8 +208,18 @@ async def test_score_summary_aggregates(client, admin_headers):
     assert res.status_code == 200
     summary = res.json()
     # 내림차순: team 15 먼저, user 3
-    assert summary[0] == {"subject_type": "team", "subject_id": team_id, "total_score": 15}
-    assert {"subject_type": "user", "subject_id": user_id, "total_score": 3} in summary
+    assert summary[0] == {
+        "subject_type": "team",
+        "subject_id": team_id,
+        "subject_name": "레드팀",
+        "total_score": 15,
+    }
+    assert {
+        "subject_type": "user",
+        "subject_id": user_id,
+        "subject_name": "참가자",
+        "total_score": 3,
+    } in summary
 
 
 async def test_list_and_update_score(client, admin_headers):

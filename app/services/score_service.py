@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, case, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -99,20 +99,40 @@ async def update_score(
 async def score_summary(db: AsyncSession, session_id: int) -> list[dict]:
     """세션 내 subject 별 합산 점수 (내림차순)."""
     total = func.coalesce(func.sum(GameScoreLog.score), 0)
+    subject_name = case(
+        (GameScoreLog.subject_type == "team", Team.name),
+        else_=User.nickname,
+    )
     result = await db.execute(
         select(
             GameScoreLog.subject_type,
             GameScoreLog.subject_id,
+            subject_name.label("subject_name"),
             total.label("total_score"),
         )
+        .outerjoin(
+            Team,
+            and_(
+                GameScoreLog.subject_type == "team",
+                GameScoreLog.subject_id == Team.id,
+            ),
+        )
+        .outerjoin(
+            User,
+            and_(
+                GameScoreLog.subject_type == "user",
+                GameScoreLog.subject_id == User.id,
+            ),
+        )
         .where(GameScoreLog.session_id == session_id)
-        .group_by(GameScoreLog.subject_type, GameScoreLog.subject_id)
+        .group_by(GameScoreLog.subject_type, GameScoreLog.subject_id, Team.name, User.nickname)
         .order_by(total.desc())
     )
     return [
         {
             "subject_type": row.subject_type,
             "subject_id": row.subject_id,
+            "subject_name": row.subject_name,
             "total_score": int(row.total_score),
         }
         for row in result.all()
