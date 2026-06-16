@@ -129,6 +129,19 @@ export interface RoundReveal {
   distribution: Record<string, number>
 }
 
+export interface ChatLog {
+  id: number
+  session_id: number
+  round_id: number | null
+  user_id: number
+  nickname: string
+  team_id: number | null
+  team_name: string | null
+  message: string
+  is_correct: boolean
+  server_time: string
+}
+
 export interface RouletteSpinResult {
   session_id: number
   nonce: number
@@ -283,6 +296,10 @@ export const api = {
     request<RoundReveal>(`/api/rounds/${roundId}/close`, token, { method: 'POST' }),
   revealRound: (token: string, roundId: number) =>
     request<RoundReveal>(`/api/rounds/${roundId}/reveal`, token),
+  chatLogs: (token: string, sessionId: number, roundId?: number | null) => {
+    const qs = roundId == null ? '' : `?round_id=${roundId}`
+    return request<ChatLog[]>(`/api/sessions/${sessionId}/chat-logs${qs}`, token)
+  },
 
   // --- 운영자(admin) 관리: 시즌 / 팀 / 유저 ---
   createSeason: (token: string, name: string) =>

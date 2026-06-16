@@ -4,6 +4,7 @@ import type { GameRound } from '../api'
 
 interface ChatMessage {
   key: number
+  id: number | null
   userId: number
   nickname: string
   message: string
@@ -15,10 +16,11 @@ interface Props {
   sessionId: number
   myUserId: number
   round: GameRound | null
+  showCorrect?: boolean
 }
 
 /** input_type=chat 게임용 실시간 채팅. 현재 열린 라운드 기준으로 정답을 가린다. */
-export default function ChatPanel({ sessionId, myUserId, round }: Props) {
+export default function ChatPanel({ sessionId, myUserId, round, showCorrect = false }: Props) {
   const { send, subscribe, connected } = useLive()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [text, setText] = useState('')
@@ -32,6 +34,7 @@ export default function ChatPanel({ sessionId, myUserId, round }: Props) {
         ...prev,
         {
           key: keyRef.current++,
+          id: (e.id as number | undefined) ?? null,
           userId: e.user_id as number,
           nickname: (e.nickname as string) ?? '익명',
           message: e.message as string,
@@ -67,9 +70,6 @@ export default function ChatPanel({ sessionId, myUserId, round }: Props) {
         <div className="chat-round">
           <strong>문제 {round.order_index}</strong>
           {round.prompt && <span className="muted"> · {round.prompt}</span>}
-          {round.media_url && (
-            <audio className="chat-audio" src={round.media_url} controls preload="none" />
-          )}
         </div>
       ) : (
         <p className="muted">진행 중인 라운드가 없습니다. 운영자가 문제를 열면 시작됩니다.</p>
@@ -83,12 +83,12 @@ export default function ChatPanel({ sessionId, myUserId, round }: Props) {
             <div
               key={m.key}
               className={`chat-msg${m.userId === myUserId ? ' mine' : ''}${
-                m.isCorrect ? ' correct' : ''
+                showCorrect && m.isCorrect ? ' correct' : ''
               }`}
             >
               <span className="chat-nick">{m.nickname}</span>
               <span className="chat-text">{m.message}</span>
-              {m.isCorrect && <span className="chat-badge">정답 🎉</span>}
+              {showCorrect && m.isCorrect && <span className="chat-badge">정답</span>}
             </div>
           ))
         )}

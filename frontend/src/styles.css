@@ -684,3 +684,41 @@ button:disabled {
 .chip.status-open { background: #e3f6e8; color: #1f8a44; }
 .chip.status-closed { background: #f0e6ff; color: #6b3fb0; }
 .op-full { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px; font-size: 13px; margin-bottom: 6px; }
+
+/* ---- 운영자 정답 후보 ---- */
+.judge-panel { display: flex; flex-direction: column; gap: 10px; }
+.judge-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.judge-head .section { margin: 0; }
+.score-stepper { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; color: #55607a; }
+.score-stepper input {
+  width: 64px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 8px;
+  font-size: 13px; font-weight: 800;
+}
+.judge-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.judge-item {
+  display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 8px;
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff;
+}
+.judge-item.correct { border-color: #b6e6c5; background: #f3fbf5; }
+.judge-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 13px; }
+.judge-main strong, .judge-main span { overflow-wrap: anywhere; }
+.judge-all { border-top: 1px solid var(--line); padding-top: 10px; }
+.judge-log-list { list-style: none; padding: 0; margin: 6px 0 0; display: flex; flex-direction: column; gap: 4px; }
+.judge-log-list li {
+  display: grid; grid-template-columns: 72px minmax(72px, auto) minmax(0, 1fr) auto;
+  gap: 6px; align-items: center; padding: 6px 8px; border-radius: 8px;
+  background: #f6f8fc; font-size: 12px;
+}
+.judge-log-list li.hit { background: #e3f6e8; }
+.judge-log-list strong, .judge-log-list span { overflow-wrap: anywhere; }
+.judge-log-list em {
+  font-style: normal; font-weight: 800; color: #1f8a44; font-size: 11px;
+}
+
+@media (max-width: 420px) {
+  .judge-head { align-items: flex-start; flex-direction: column; }
+  .judge-item { grid-template-columns: 24px minmax(0, 1fr); }
+  .judge-item .op-btn { grid-column: 2; width: 100%; }
+  .judge-log-list li { grid-template-columns: 62px minmax(0, 1fr); }
+  .judge-log-list li span:nth-child(3), .judge-log-list li em { grid-column: 2; }
+}

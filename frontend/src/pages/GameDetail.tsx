@@ -16,6 +16,7 @@ import OperatorPanel from '../components/OperatorPanel'
 import RoundOperator from '../components/RoundOperator'
 import ChatPanel from '../components/ChatPanel'
 import ButtonPanel from '../components/ButtonPanel'
+import ChatJudgePanel from '../components/ChatJudgePanel'
 
 interface Props {
   entry: TimetableEntry
@@ -162,9 +163,19 @@ export default function GameDetail({
               sessionId={sessionId}
               myUserId={user?.user_id ?? -1}
               round={currentRound}
+              showCorrect={isAdmin}
             />
           )}
           {isButton && <ButtonPanel sessionId={sessionId} round={currentRound} />}
+
+          {isAdmin && isChat && (
+            <ChatJudgePanel
+              token={t}
+              sessionId={sessionId}
+              round={currentRound}
+              onScored={refresh}
+            />
+          )}
 
           <h3 className="sec-title">🏆 스코어보드</h3>
           {summary.length === 0 ? (
