@@ -4,6 +4,8 @@ import {
   type Game,
   type GameSession,
   type GameState,
+  type ScoreSummaryItem,
+  type Team,
   type TimetableEntry,
 } from '../api'
 import { useAuth } from '../auth'
@@ -42,6 +44,9 @@ export default function MainPage() {
   const [games, setGames] = useState<Record<number, Game>>({})
   const [sessions, setSessions] = useState<Record<number, GameSession | null>>({})
   const [selected, setSelected] = useState<TimetableEntry | null>(null)
+  const [doneSelected, setDoneSelected] = useState<TimetableEntry | null>(null)
+  const [doneScores, setDoneScores] = useState<ScoreSummaryItem[]>([])
+  const [teams, setTeams] = useState<Team[]>([])
   const [mapOffset, setMapOffset] = useState(0)
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -54,6 +59,20 @@ export default function MainPage() {
       .then((list) => setGames(Object.fromEntries(list.map((g) => [g.id, g]))))
       .catch(() => setGames({}))
   }, [t])
+
+  // 팀 목록
+  useEffect(() => {
+    if (seasonId == null) return
+    api.teams(t, seasonId).then(setTeams).catch(() => setTeams([]))
+  }, [t, seasonId])
+
+  // done 체육관 스코어 fetch
+  useEffect(() => {
+    if (!doneSelected) { setDoneScores([]); return }
+    const sessionId = sessions[doneSelected.id]?.id
+    if (!sessionId) return
+    api.scoreSummary(t, sessionId).then(setDoneScores).catch(() => setDoneScores([]))
+  }, [doneSelected, sessions, t])
 
   // 타임테이블 + 각 항목의 최신 세션
   const loadEntries = useCallback(() => {
@@ -104,6 +123,8 @@ export default function MainPage() {
   }, [sessions, entries])
 
   const title = (e: TimetableEntry) => e.label ?? games[e.game_id]?.title ?? `게임 #${e.game_id}`
+  const teamName = (type: string, id: number) =>
+    type === 'team' ? (teams.find((x) => x.id === id)?.name ?? `팀 #${id}`) : `유저 #${id}`
 
   if (selected) {
     return (
@@ -136,14 +157,64 @@ export default function MainPage() {
             <div
               key={e.id}
               className={`gym-marker${done ? ' done' : ''}${live ? ' live' : ''}`}
-              style={{ left: pos.x, top: pos.y, cursor: live ? 'pointer' : 'default' }}
-              onClick={() => live && setSelected(e)}
+              style={{ left: pos.x, top: pos.y, cursor: live || done ? 'pointer' : 'default' }}
+              onClick={() => {
+                if (live) setSelected(e)
+                else if (done) setDoneSelected(e)
+              }}
             >
               <span className="gym-title">{games[e.game_id]?.title ?? title(e)}</span>
             </div>
           )
         })}
       </div>
+
+      {doneSelected && (
+        <div className="modal" onClick={() => setDoneSelected(null)}>
+          <div className="score-modal-card" onClick={(e) => e.stopPropagation()}>
+            {/* 히어로 */}
+            <div className="score-modal-hero">
+              <h3 className="score-modal-title">{title(doneSelected)}</h3>
+              <p className="score-modal-sub">Final Score</p>
+            </div>
+
+            {/* 스코어 */}
+            <div className="score-modal-body">
+              {doneScores.length === 0 ? (
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, textAlign: 'center', padding: '12px 0' }}>
+                  기록된 점수가 없습니다.
+                </p>
+              ) : (() => {
+                const maxScore = doneScores[0].total_score
+                return (
+                  <ol className="score-list">
+                    {doneScores.map((s, i) => {
+                      const cls = i === 0 ? ' r1' : i === 1 ? ' r2' : i === 2 ? ' r3' : ''
+                      const barPct = maxScore > 0 ? (s.total_score / maxScore) * 100 : 0
+                      return (
+                        <li key={`${s.subject_type}-${s.subject_id}`} className={`score-row${cls}`}>
+                          <div className="score-top">
+                            <span className="score-rank">{i + 1}</span>
+                            <span className="score-name">{teamName(s.subject_type, s.subject_id)}</span>
+                            <span className="score-pts">{s.total_score}</span>
+                          </div>
+                          <div className="score-bar-wrap">
+                            <div className="score-bar" style={{ width: `${barPct}%` }} />
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ol>
+                )
+              })()}
+            </div>
+
+            <button className="score-modal-close" onClick={() => setDoneSelected(null)}>
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

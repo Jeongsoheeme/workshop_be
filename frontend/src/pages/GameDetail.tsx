@@ -87,75 +87,88 @@ export default function GameDetail({
     }
   }
 
-  return (
-    <div className="page">
-      <button className="back" onClick={onBack}>
-        ← 진행 목록
-      </button>
+  const isLive = state === 'in_progress' || state === 'scoring' || state === 'reward'
+  const badgeCls = isLive ? 'live' : state === 'done' ? 'done' : 'idle'
+  const maxScore = summary.length > 0 ? summary[0].total_score : 1
 
-      <h2 className="detail-title">
-        {entry.order_index}. {entry.label ?? game?.title ?? `게임 #${entry.game_id}`}
-      </h2>
-      {game?.description && <p className="muted">{game.description}</p>}
-      <div className="detail-meta">
-        {game && (
-          <span className="chip">
-            {game.participant_type} · {game.input_type}
+  return (
+    <div className="detail-page">
+      {/* 히어로 */}
+      <div className="detail-hero">
+        <button className="detail-back" onClick={onBack}>‹ 진행 목록</button>
+        <p className="detail-gym-label">GYM BATTLE · {entry.order_index}번 체육관</p>
+        <h2 className="detail-gym-name">
+          {entry.label ?? game?.title ?? `게임 #${entry.game_id}`}
+        </h2>
+        {game?.description && (
+          <p className="detail-gym-desc">{game.description}</p>
+        )}
+        {state && (
+          <span className={`detail-state-badge ${badgeCls}`}>
+            {isLive ? '● ' : ''}{STATE_LABEL[state]}
           </span>
         )}
-        {state && <span className="chip state">{STATE_LABEL[state]}</span>}
       </div>
 
-      {sessionId == null ? (
-        <div className="card" style={{ marginTop: 14 }}>
-          <p className="muted">아직 세션이 시작되지 않았습니다.</p>
-          {isAdmin && (
-            <button className="op-btn" disabled={busy} onClick={createSession}>
-              세션 생성
-            </button>
-          )}
-        </div>
-      ) : (
-        <>
-          <h3 className="sec-title">🏆 스코어보드</h3>
-          {summary.length === 0 ? (
-            <p className="muted">아직 기록된 점수가 없습니다.</p>
-          ) : (
-            <ol className="board">
-              {summary.map((s, i) => (
-                <li key={`${s.subject_type}-${s.subject_id}`} className={`row rank-${i + 1}`}>
-                  <span className="rank">{i + 1}</span>
-                  <span className="name">{subjectLabel(s.subject_type, s.subject_id)}</span>
-                  <span className="score">{s.total_score}</span>
-                </li>
-              ))}
-            </ol>
-          )}
+      {/* 본문 */}
+      <div className="detail-body">
+        {sessionId == null ? (
+          <div className="detail-no-session">
+            <p style={{ marginBottom: isAdmin ? 12 : 0 }}>아직 세션이 시작되지 않았습니다.</p>
+            {isAdmin && (
+              <button className="op-btn" disabled={busy} onClick={createSession}>
+                세션 생성
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            <p className="detail-section-label">scoreboard</p>
+            {summary.length === 0 ? (
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
+                아직 기록된 점수가 없습니다.
+              </p>
+            ) : (
+              <ol className="score-list">
+                {summary.map((s, i) => {
+                  const barPct = maxScore > 0 ? (s.total_score / maxScore) * 100 : 0
+                  const cls = i === 0 ? ' r1' : i === 1 ? ' r2' : i === 2 ? ' r3' : ''
+                  return (
+                    <li key={`${s.subject_type}-${s.subject_id}`} className={`score-row${cls}`}>
+                      <div className="score-top">
+                        <span className="score-rank">{i + 1}</span>
+                        <span className="score-name">{subjectLabel(s.subject_type, s.subject_id)}</span>
+                        <span className="score-pts">{s.total_score}</span>
+                      </div>
+                      <div className="score-bar-wrap">
+                        <div className="score-bar" style={{ width: `${barPct}%` }} />
+                      </div>
+                    </li>
+                  )
+                })}
+              </ol>
+            )}
 
-          {results.length > 0 && (
-            <>
-              <h3 className="sec-title">🏅 최종 결과</h3>
-              <div className="card">
-                {results.map((r) => (
-                  <div key={r.id}>🎉 {subjectLabel(r.subject_type, r.subject_id)} 우승</div>
-                ))}
+            {results.length > 0 && (
+              <div className="detail-winner">
+                🏆 {results.map((r) => subjectLabel(r.subject_type, r.subject_id)).join(', ')} 우승!
               </div>
-            </>
-          )}
+            )}
 
-          {isAdmin && state && (
-            <OperatorPanel
-              key={sessionId}
-              token={t}
-              sessionId={sessionId}
-              state={state}
-              teams={teams}
-              onStateChange={setState}
-              onScored={refresh}
-            />
-          )}
-        </>
-      )}
+            {isAdmin && state && (
+              <OperatorPanel
+                key={sessionId}
+                token={t}
+                sessionId={sessionId}
+                state={state}
+                teams={teams}
+                onStateChange={setState}
+                onScored={refresh}
+              />
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }
